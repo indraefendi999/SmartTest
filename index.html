@@ -5983,28 +5983,28 @@ function generateBarcodeSvg(rawText, height) {
         '<div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 0;">' +
         '<table style="width: 100%; font-size: 9.5px; border-collapse: collapse; line-height: 1.35; color: #0f172a;">' +
         '<tr>' +
-        '<td style="font-weight: 700; width: 54px; padding: 1.5px 0; vertical-align: top;">No. Peserta</td>' +
-        '<td style="width: 8px; padding: 1.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
+        '<td style="font-weight: 700; width: 62px; white-space: nowrap; padding: 1.5px 0; vertical-align: top;">No. Peserta</td>' +
+        '<td style="width: 8px; text-align: center; padding: 1.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
         '<td style="font-weight: 800; font-family: var(--font-mono, monospace); letter-spacing: 0.3px; padding: 1.5px 0;">' + escapeHtml(s.noPeserta) + '</td>' +
         '</tr>' +
         '<tr>' +
-        '<td style="font-weight: 700; padding: 1.5px 0; vertical-align: top;">NISN</td>' +
-        '<td style="padding: 1.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
+        '<td style="font-weight: 700; white-space: nowrap; padding: 1.5px 0; vertical-align: top;">NISN</td>' +
+        '<td style="text-align: center; padding: 1.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
         '<td style="font-weight: 800; font-family: var(--font-mono, monospace); padding: 1.5px 0;">' + escapeHtml(s.nisn || "-") + '</td>' +
         '</tr>' +
         '<tr>' +
-        '<td style="font-weight: 700; padding: 1.5px 0; vertical-align: top;">Nama</td>' +
-        '<td style="padding: 1.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
+        '<td style="font-weight: 700; white-space: nowrap; padding: 1.5px 0; vertical-align: top;">Nama</td>' +
+        '<td style="text-align: center; padding: 1.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
         '<td style="font-weight: 900; text-transform: uppercase; color: #0f172a; padding: 1.5px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">' + escapeHtml(s.nama) + '</td>' +
         '</tr>' +
         '<tr>' +
-        '<td style="font-weight: 700; padding: 1.5px 0; vertical-align: top;">Kelas</td>' +
-        '<td style="padding: 1.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
+        '<td style="font-weight: 700; white-space: nowrap; padding: 1.5px 0; vertical-align: top;">Kelas</td>' +
+        '<td style="text-align: center; padding: 1.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
         '<td style="font-weight: 700; padding: 1.5px 0;">' + escapeHtml(s.kelas) + '</td>' +
         '</tr>' +
         '<tr>' +
-        '<td style="font-weight: 700; padding: 1.5px 0; vertical-align: top;">Ruang</td>' +
-        '<td style="padding: 1.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
+        '<td style="font-weight: 700; white-space: nowrap; padding: 1.5px 0; vertical-align: top;">Ruang</td>' +
+        '<td style="text-align: center; padding: 1.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
         '<td style="font-weight: 700; padding: 1.5px 0;">' + escapeHtml(s.ruang) + '</td>' +
         '</tr>' +
         '</table>' +
