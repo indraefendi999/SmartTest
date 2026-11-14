@@ -411,14 +411,19 @@
           box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
       }
   
-      /* PRINT MODE KHUSUS KARTU PESERTA UJIAN (A4 PRINT OPTIMIZATION) */
+      /* PRINT MODE KHUSUS KARTU PESERTA UJIAN (A4 PORTRAIT - MUAT TEPAT 6 KARTU 9x8 CM) */
       @media print {
           body {
               background: #ffffff !important;
               padding: 0 !important;
               margin: 0 !important;
           }
-  
+
+          @page {
+              size: A4 portrait !important;
+              margin: 6mm 10mm 6mm 10mm !important;
+          }
+
           header,
           nav,
           .guru-tab-btn,
@@ -427,10 +432,12 @@
           label,
           .modal-backdrop,
           #appToast,
-          #appLoadingOverlay {
+          #appLoadingOverlay,
+          #guruBroadcastBar,
+          #kartuToolbarHeader {
               display: none !important;
           }
-  
+
           #viewGuruDashboard {
               box-shadow: none !important;
               max-width: 100% !important;
@@ -438,33 +445,42 @@
               padding: 0 !important;
               background: transparent !important;
           }
-  
+
           #guruTab_kartu {
               display: block !important;
               padding: 0 !important;
               margin: 0 !important;
           }
-  
+
           .guru-tab-content:not(#guruTab_kartu) {
               display: none !important;
           }
-  
+
           #kartuUjianGrid {
               display: grid !important;
-              grid-template-columns: repeat(2, 1fr) !important;
-              gap: 6mm !important;
-              padding: 8mm !important;
-              margin: 0 !important;
-              width: 100% !important;
+              grid-template-columns: repeat(2, 90mm) !important;
+              justify-content: center !important;
+              column-gap: 6mm !important;
+              row-gap: 5mm !important;
+              padding: 0 !important;
+              margin: 0 auto !important;
+              width: auto !important;
           }
-  
+
           .kartu-peserta-item {
+              width: 90mm !important;
+              height: 80mm !important;
+              max-height: 80mm !important;
+              min-height: 80mm !important;
+              box-sizing: border-box !important;
               page-break-inside: avoid !important;
               break-inside: avoid !important;
               box-shadow: none !important;
-              border: 1.5px solid #0f2b5c !important;
+              border: 1.2px solid #0b2f64 !important;
+              border-radius: 8px !important;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
+              overflow: hidden !important;
           }
       }
   </style>
@@ -958,7 +974,7 @@
     </header>
 
     <!-- KARTU KONTROL LIVE BROADCAST PENGUMUMAN PENGAWAS -->
-    <div
+    <div id="guruBroadcastBar"
       class="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md border-b border-amber-600 select-none">
       <div class="flex items-center gap-2.5 w-full sm:w-auto">
         <span
@@ -1435,7 +1451,7 @@
 
     <!-- TAB CONTENT 5: CETAK KARTU UJIAN -->
     <div id="guruTab_kartu" class="guru-tab-content hidden p-6 space-y-4">
-      <div
+      <div id="kartuToolbarHeader"
         class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div>
           <h3 class="font-bold text-slate-800 text-lg">Cetak Kartu Peserta Ujian</h3>
@@ -5020,1069 +5036,13 @@ if (funcName === "apiClearSiswaList") {
 
     var html = "";
     for (var i = 0; i < list.length; i++) {
-      var j = list[i];
-      if (!j || !j.mapel) continue;
-      var ket = j.keterangan || "Sesuai Jadwal";
-      var badgeClass = "bg-blue-100 text-blue-800";
-      if (ket === "Sedang Berlangsung") badgeClass = "bg-emerald-100 text-emerald-800 font-bold";
-      if (ket === "Selesai") badgeClass = "bg-slate-200 text-slate-600";
-
-      var cleanJam = formatCleanTime(j.jam);
-      html += "<tr class='border-b border-slate-100 hover:bg-slate-50/80 transition'>" +
-          "<td class='py-3.5 px-4'><div class='font-bold text-slate-800 leading-tight'>" + escapeHtml(j.mapel) + "</div><div class='text-[11px] text-slate-500 font-medium mt-0.5'>Guru: " + escapeHtml(j.guru || "-") + "</div></td>" +
-        "<td class='py-3.5 px-4 text-slate-600 font-medium'>" + escapeHtml(j.kelas) + "</td>" +
-        "<td class='py-3.5 px-4 text-slate-600 font-medium whitespace-nowrap'>" + escapeHtml(j.tanggal) + " &bull; " + cleanJam + " WIB</td>" +
-        "<td class='py-3.5 px-4 text-slate-600 whitespace-nowrap'>" + escapeHtml(j.durasi) + " Menit</td>" +
-        "<td class='py-3.5 px-4 whitespace-nowrap'><span class='inline-block px-2.5 py-1 bg-blue-100 text-blue-800 rounded font-mono font-bold text-xs tracking-wider'>" + escapeHtml(j.token) + "</span></td>" +
-        "<td class='py-3.5 px-4 whitespace-nowrap'><span class='inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold " + badgeClass + "'>" + escapeHtml(ket) + "</span></td>" +
-        "<td class='py-3.5 px-4 text-right whitespace-nowrap space-x-1.5'>" +
-        "<button onclick='openQrModal(\"" + j.token + "\", \"" + escapeHtml(j.mapel) + "\")' class='px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded text-xs font-semibold shadow-sm'>QR Barcode</button>" +
-        "<button onclick='openModalEditJadwal(\"" + j.id + "\")' class='px-2.5 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs font-semibold'>Edit</button>" +
-        "<button onclick='deleteJadwalItem(\"" + j.id + "\")' class='px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs font-semibold'>Hapus</button>" +
-        "</td>" +
-        "</tr>";
-    }
-    tbody.innerHTML = html;
-  }
-
-  function resetJadwalForm() {
-    document.getElementById("jadwalFormId").value = "";
-    document.getElementById("jadwalMapel").value = "";
-    var guruInput = document.getElementById("jadwalGuru");
-    if (guruInput) guruInput.value = "";
-    document.getElementById("jadwalKelas").value = "";
-    document.getElementById("jadwalTanggal").value = "";
-    document.getElementById("jadwalJam").value = "";
-    document.getElementById("jadwalDurasi").value = "";
-    document.getElementById("jadwalLink").value = "";
-    generateRandomTokenInput();
-  }
-  window.resetJadwalForm = resetJadwalForm;
-
-  function openModalTambahJadwal() {
-    var titleEl = document.getElementById("modalJadwalTitle");
-    if (titleEl) titleEl.innerText = "Tambah Jadwal Ujian";
-    resetJadwalForm();
-    openModal("modalFormJadwal");
-  }
-  window.openModalTambahJadwal = openModalTambahJadwal;
-
-  function openModalEditJadwal(id) {
-    var item = null;
-    var list = AppState.cachedJadwal || [];
-    for (var i = 0; i < list.length; i++) {
-      if (String(list[i].id) === String(id)) {
-        item = list[i];
-        break;
-      }
-    }
-    if (!item) {
-      showToast("Data jadwal tidak ditemukan.", "error");
-      return;
-    }
-
-    var titleEl = document.getElementById("modalJadwalTitle");
-    if (titleEl) titleEl.innerText = "Edit Jadwal Ujian";
-
-    document.getElementById("jadwalFormId").value = item.id || "";
-    document.getElementById("jadwalMapel").value = item.mapel || "";
-    var guruInput = document.getElementById("jadwalGuru");
-    if (guruInput) guruInput.value = item.guru || (AppState.guruLoggedIn ? AppState.guruLoggedIn.nama : "");
-    document.getElementById("jadwalKelas").value = item.kelas || "";
-    document.getElementById("jadwalTanggal").value = item.tanggal || "";
-    document.getElementById("jadwalJam").value = formatCleanTime(item.jam);
-    document.getElementById("jadwalDurasi").value = item.durasi || "90";
-    document.getElementById("jadwalToken").value = item.token || "";
-    document.getElementById("jadwalLink").value = item.link || "";
-
-    openModal("modalFormJadwal");
-  }
-  window.openModalEditJadwal = openModalEditJadwal;
-
-  function generateRandomTokenInput() {
-    var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    var res = "";
-    for (var i = 0; i < 6; i++) {
-      res += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    document.getElementById("jadwalToken").value = res;
-  }
-  window.generateRandomTokenInput = generateRandomTokenInput;
-
-  function saveJadwalSubmit() {
-    var mapel = document.getElementById("jadwalMapel").value.trim();
-    var guruInput = document.getElementById("jadwalGuru");
-    var guru = guruInput ? guruInput.value.trim() : "";
-    if (!guru) guru = AppState.guruLoggedIn ? AppState.guruLoggedIn.nama : "Guru Mata Pelajaran";
-
-    var kelas = document.getElementById("jadwalKelas").value.trim();
-    var tanggal = document.getElementById("jadwalTanggal").value.trim();
-    var jam = document.getElementById("jadwalJam").value.trim();
-    var durasi = document.getElementById("jadwalDurasi").value.trim();
-    var token = document.getElementById("jadwalToken").value.trim().toUpperCase();
-    var link = document.getElementById("jadwalLink").value.trim();
-    var id = document.getElementById("jadwalFormId").value.trim();
-
-    if (!mapel || !guru || !kelas || !tanggal || !jam || !durasi || !token) {
-      showToast("Semua kolom jadwal ujian (Mapel, Guru, Kelas, Tanggal, Jam, Durasi, dan Token) wajib diisi lengkap!", "warning");
-      return;
-    }
-
-    var payload = {
-      id: id,
-      mapel: mapel,
-      kelas: kelas,
-      tanggal: tanggal,
-      jam: jam,
-      durasi: durasi,
-      token: token,
-      link: link,
-      guru: guru
-    };
-
-    var isEdit = Boolean(id);
-    showModernConfirm({
-      title: isEdit ? "Simpan Perubahan Jadwal" : "Terbitkan Jadwal Ujian",
-      message: isEdit
-        ? "Apakah Anda yakin ingin menyimpan perubahan pada jadwal '" + mapel + "' (Guru: " + guru + ")?"
-        : "Apakah jadwal ujian '" + mapel + "' (Guru: " + guru + ") sudah benar dan siap diterbitkan?",
-      type: "primary",
-        icon: isEdit ? "" : "",
-      btnText: isEdit ? "Ya, Simpan Perubahan" : "Ya, Terbitkan Jadwal"
-    }, function () {
-      showLoading(true, "Menyimpan Jadwal Ujian...");
-      callBackend("apiSaveJadwal", payload, function (res) {
-        showLoading(false);
-        if (res && res.status === "success") {
-          closeModal("modalFormJadwal");
-          resetJadwalForm();
-          showToast(res.message, "success");
-          loadGuruJadwalList();
-        } else {
-          showToast(res ? res.message : "Gagal menyimpan jadwal.", "error");
-        }
-      });
-    });
-  }
-  window.saveJadwalSubmit = saveJadwalSubmit;
-
-  function deleteJadwalItem(id) {
-    showModernConfirm({
-      title: "Hapus Jadwal Ujian",
-      message: "Apakah Anda yakin ingin menghapus jadwal ujian ini? Data yang dihapus tidak dapat dipulihkan.",
-      type: "danger",
-        icon: "",
-      btnText: "Ya, Hapus Jadwal"
-    }, function () {
-      showLoading(true, "Menghapus jadwal...");
-      callBackend("apiDeleteJadwal", id, function (res) {
-        showLoading(false);
-        showToast("Jadwal berhasil dihapus.", "info");
-        loadGuruJadwalList();
-      });
-    });
-  }
-  window.deleteJadwalItem = deleteJadwalItem;
-
-  function openQrModal(token, mapel) {
-    document.getElementById("qrModalMapel").innerText = mapel;
-    document.getElementById("qrModalToken").innerText = token;
-
-    var qrContainer = document.getElementById("qrCodeCanvasWrapper");
-    qrContainer.innerHTML = "";
-
-    if (typeof QRCode !== "undefined") {
-      new QRCode(qrContainer, {
-        text: token,
-        width: 200,
-        height: 200,
-        colorDark: "#0f172a",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.H
-      });
-    }
-
-    openModal("modalViewQr");
-  }
-  window.openQrModal = openQrModal;
-
-  /* ==========================================================================
-     MONITORING PELANGGARAN & RESET KUNCI SISWA
-     ========================================================================== */
-
-  function loadGuruLogList() {
-    var filterMapel = document.getElementById("filterLogMapel") ? document.getElementById("filterLogMapel").value : "semua";
-
-    if (!AppState.cachedJadwal || AppState.cachedJadwal.length === 0) {
-      callBackend("apiGetJadwalList", null, function (resJ) {
-        if (resJ && resJ.status === "success" && resJ.list) {
-          AppState.cachedJadwal = resJ.list;
-          populateFilterMapelDropdown(AppState.cachedJadwal);
-        }
-      });
-    }
-
-    callBackend("apiGetLogPelanggaran", filterMapel, function (res) {
-      if (res && res.status === "success") {
-        AppState.cachedLogs = res.list || [];
-        renderLogTable(AppState.cachedLogs);
-      }
-    });
-  }
-  function confirmClearLogPelanggaran() {
-    showModernConfirm({
-      title: "Kosongkan Log Pelanggaran?",
-      message: "Apakah Anda yakin ingin menghapus seluruh catatan pelanggaran siswa di Spreadsheet? Seluruh data pelanggaran lama akan dibersihkan permanen.",
-      type: "danger",
-      icon: '<svg class="w-8 h-8 text-rose-600 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>',
-      btnText: "Ya, Kosongkan Log"
-    }, function () {
-      clearLogPelanggaranAction();
-    });
-  }
-  window.confirmClearLogPelanggaran = confirmClearLogPelanggaran;
-
-  function clearLogPelanggaranAction() {
-    showLoading(true, "Mengosongkan riwayat log pelanggaran...");
-    callBackend("apiClearLogPelanggaran", null, function (res) {
-      showLoading(false);
-      if (res && res.status === "success") {
-        AppState.cachedLogs = [];
-        localStorage.setItem("ST_LOG", JSON.stringify([]));
-        renderLogTable([]);
-        showToast(res.message || "Log pelanggaran berhasil dikosongkan!", "success");
-      } else {
-        showToast((res && res.message) || "Gagal mengosongkan log pelanggaran.", "error");
-      }
-    });
-  }
-  window.clearLogPelanggaranAction = clearLogPelanggaranAction;
-
-  window.loadGuruLogList = loadGuruLogList;
-  window.resetKunciAction = resetKunciAction;
-
-  function renderLogTable(list) {
-    var tbody = document.getElementById("guruLogTbody");
-    if (!tbody) return;
-
-    if (!list || list.length === 0) {
-      tbody.innerHTML = "<tr><td colspan='8' class='text-center py-8 text-slate-400'>" +
-        "<div class='space-y-1'>" +
-          "<div class='text-2xl font-bold text-emerald-500'>&check;</div>" +
-        "<div class='font-bold text-slate-600'>Belum ada catatan pelanggaran siswa. Seluruh siswa tertib!</div>" +
-        "</div></td></tr>";
-      return;
-    }
-
-    var html = "";
-    for (var i = 0; i < list.length; i++) {
-      var l = list[i];
-      var badgeClass = "bg-amber-100 text-amber-800 border border-amber-200";
-      if (l.status === "TERKUNCI") badgeClass = "bg-red-100 text-red-800 font-bold border border-red-200 animate-pulse";
-      if (l.status === "DIRESET_GURU") badgeClass = "bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold";
-
-      var actionBtn = "";
-      if (l.status === "TERKUNCI") {
-        actionBtn = "<button onclick=\"resetKunciAction('" + l.id + "', '" + l.token + "', '" + l.noPeserta + "')\" class='px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow transition active:scale-95 flex items-center justify-center space-x-1 mx-auto' title='Buka kunci ujian peserta ini'><span>Buka Kunci</span></button>";
-      } else if (l.status === "PERINGATAN") {
-        actionBtn = "<button onclick=\"resetKunciAction('" + l.id + "', '" + l.token + "', '" + l.noPeserta + "')\" class='px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold shadow transition active:scale-95 flex items-center justify-center space-x-1 mx-auto' title='Reset hitungan peringatan'><span>Reset</span></button>";
-      } else {
-        actionBtn = "<span class='inline-flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full'>&check; Telah Dibuka</span>";
-      }
-
-      html += "<tr class='border-b border-slate-100 hover:bg-slate-50 transition'>" +
-        "<td class='py-3 px-3 text-xs text-slate-500 font-mono whitespace-nowrap'>" + l.waktu + "</td>" +
-        "<td class='py-3 px-3 font-bold text-slate-800 whitespace-nowrap'>" + l.siswa + "</td>" +
-        "<td class='py-3 px-3 text-slate-600 whitespace-nowrap'>" + l.kelas + " <span class='font-mono font-bold text-blue-600'>(" + l.noPeserta + ")</span></td>" +
-        "<td class='py-3 px-3 text-slate-700'>" + l.mapel + "</td>" +
-        "<td class='py-3 px-3 text-slate-600 text-xs'>" + l.jenis + "</td>" +
-        "<td class='py-3 px-3 font-bold text-center text-slate-800'>" + l.total + "</td>" +
-        "<td class='py-3 px-3 text-center'><span class='inline-block px-2.5 py-0.5 rounded text-xs " + badgeClass + "'>" + l.status + "</span></td>" +
-        "<td class='py-3 px-3 text-center whitespace-nowrap'>" + actionBtn + "</td>" +
-        "</tr>";
-    }
-    tbody.innerHTML = html;
-  }
-
-  function resetKunciAction(idLog, token, noPeserta) {
-    var displayTarget = noPeserta || idLog || "siswa terpilih";
-    showModernConfirm({
-      title: "Buka Kunci Ujian Siswa",
-      message: "Buka kembali kunci ujian untuk peserta (" + displayTarget + ")? Siswa akan dapat melanjutkan ujian kembali.",
-      type: "primary",
-        icon: "",
-      btnText: "Ya, Buka Kunci"
-    }, function () {
-      showLoading(true, "Membuka kunci siswa " + displayTarget + "...");
-      var param = { idLog: idLog, token: token, noPeserta: noPeserta };
-      callBackend("apiResetKunciSiswa", param, function (res) {
-        showLoading(false);
-        if (res && res.status === "success") {
-          showToast(res.message || "Kunci berhasil dibuka.", "success");
-        } else {
-          showToast((res && res.message) || "Kunci berhasil dibuka.", "info");
-        }
-        loadGuruLogList();
-      });
-    });
-  }
-
-  function handleQuickUnlockAction() {
-    var inputEl = document.getElementById("quickUnlockInput");
-    if (!inputEl) return;
-    var rawVal = String(inputEl.value || "").trim().toUpperCase();
-    if (!rawVal) {
-      showToast("Ketikkan No. Peserta / NISN siswa terlebih dahulu!", "warning");
-      inputEl.focus();
-      return;
-    }
-
-    showModernConfirm({
-      title: "Buka Kunci Cepat Siswa",
-      message: "Buka kunci ujian untuk siswa dengan No. Peserta / NISN: <b>" + rawVal + "</b>?",
-      type: "primary",
-        icon: "",
-      btnText: "Ya, Buka Kunci"
-    }, function () {
-      showLoading(true, "Membuka kunci siswa " + rawVal + "...");
-      var param = { idLog: null, token: null, noPeserta: rawVal };
-      callBackend("apiResetKunciSiswa", param, function (res) {
-        showLoading(false);
-        if (res && res.status === "success") {
-          showToast(res.message || "Kunci berhasil dibuka.", "success");
-          inputEl.value = "";
-          loadGuruLogList();
-        } else {
-          showToast((res && res.message) || "Data siswa tidak ditemukan dalam log pelanggaran.", "error");
-        }
-      });
-    });
-  }
-  window.handleQuickUnlockAction = handleQuickUnlockAction;
-
-  function addSampleTestViolation() {
-    showLoading(true, "Menambahkan data uji pelanggaran...");
-    var now = new Date();
-    var pad = function (n) { return (n < 10 ? "0" : "") + n; };
-    var timeStr = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()) + " " +
-      pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
-
-    var sampleLog = {
-      id: "LOG-" + Date.now().toString().slice(-6),
-      waktu: timeStr,
-      token: "IPA90SMP",
-      mapel: "Ilmu Pengetahuan Alam (IPA)",
-      siswa: "DIMAS ADI SUBANDA",
-      kelas: "Kelas 9-4",
-      noPeserta: "SMPN1-09-012",
-      jenis: "Keluar Mode Ujian / Pindah Tab (Ke-3)",
-      total: 3,
-      status: "TERKUNCI"
-    };
-
-    if (typeof google === "undefined" || !google.script || !google.script.run) {
-      var logs = [];
-      try { logs = JSON.parse(localStorage.getItem("ST_LOG")) || []; } catch (e) { logs = []; }
-      logs.unshift(sampleLog);
-      localStorage.setItem("ST_LOG", JSON.stringify(logs));
-      showLoading(false);
-      showToast("Data contoh uji (Siswa Terkunci) berhasil ditambahkan!", "success");
-      loadGuruLogList();
-    } else {
-      var payload = {
-        token: sampleLog.token,
-        mapel: sampleLog.mapel,
-        namaSiswa: sampleLog.siswa,
-        kelas: sampleLog.kelas,
-        noPeserta: sampleLog.noPeserta,
-        jenis: sampleLog.jenis
-      };
-      callBackend("apiRecordPelanggaran", payload, function (res) {
-        showLoading(false);
-        showToast("Data contoh uji pelanggaran berhasil dicatat ke Spreadsheet!", "success");
-        loadGuruLogList();
-      });
-    }
-  }
-  window.addSampleTestViolation = addSampleTestViolation;
-
-  function formatIndoDayDate(dateStr, timeStr) {
-    if (!dateStr) return "";
-    try {
-      var parts = String(dateStr).trim().split("-");
-      if (parts.length === 3) {
-        var y = parseInt(parts[0], 10);
-        var m = parseInt(parts[1], 10) - 1;
-        var d = parseInt(parts[2], 10);
-        var dt = new Date(y, m, d);
-        var days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-        var dayName = days[dt.getDay()] || "";
-        var pad = function (n) { return (n < 10 ? "0" : "") + n; };
-        var formatted = (dayName ? dayName + ", " : "") + pad(d) + "-" + pad(m + 1) + "-" + y;
-        if (timeStr) {
-          formatted += " (" + timeStr + " WIB)";
-        }
-        return formatted;
-      }
-    } catch (e) {}
-    return dateStr;
-  }
-  window.formatIndoDayDate = formatIndoDayDate;
-
-  function populateFilterMapelDropdown(jadwalList) {
-    var dropdown = document.getElementById("filterLogMapel");
-    var pdfDropdown = document.getElementById("pdfFilterMapel");
-    var presensiDropdown = document.getElementById("filterPresensiMapel");
-    if (!dropdown && !pdfDropdown && !presensiDropdown) return;
-
-    var list = (jadwalList && jadwalList.length > 0) ? jadwalList : (AppState.cachedJadwal || []);
-
-    var items = [{ val: "semua", label: "Semua Jadwal & Mata Pelajaran" }];
-    var seen = {};
-
-    var nowObj = new Date();
-    var padZ = function (n) { return (n < 10 ? "0" : "") + n; };
-    var todayYmd = nowObj.getFullYear() + "-" + padZ(nowObj.getMonth() + 1) + "-" + padZ(nowObj.getDate());
-
-    list.forEach(function (j) {
-      if (!j || !j.mapel) return;
-      if (j.tanggal && String(j.tanggal).trim() < todayYmd) return;
-      var key = String(j.id || (String(j.mapel).trim().toLowerCase() + "|" + String(j.tanggal || "").trim() + "|" + String(j.kelas || "").trim() + "|" + String(j.jam || "").trim()));
-      if (!seen[key]) {
-        seen[key] = true;
-        var tglLabel = formatIndoDayDate(j.tanggal, j.jam);
-        var kelasTag = "";
-        if (j.kelas && String(j.kelas).trim() && String(j.kelas).toLowerCase() !== "semua") {
-          var kStr = String(j.kelas).trim();
-          kelasTag = "[" + kStr + "] ";
-        }
-        var displayLabel = kelasTag + j.mapel + (tglLabel ? " - " + tglLabel : "");
-        items.push({
-          val: j.mapel + "|" + (j.tanggal || "") + "|" + (j.kelas || "") + "|" + (j.id || ""),
-          label: displayLabel
-        });
-      }
-    });
-
-    var createOptions = function (selectEl, defaultVal) {
-      if (!selectEl) return;
-      var curVal = selectEl.value;
-      var opts = "";
-      items.forEach(function (it, idx) {
-        var optVal = (idx === 0 && defaultVal) ? defaultVal : it.val;
-        opts += "<option value='" + escapeHtml(optVal) + "'>" + escapeHtml(it.label) + "</option>";
-      });
-      selectEl.innerHTML = opts;
-      if (curVal && selectEl.querySelector("option[value='" + curVal + "']")) {
-        selectEl.value = curVal;
-      }
-    };
-
-    createOptions(dropdown, "semua");
-    createOptions(pdfDropdown, "semua");
-    createOptions(presensiDropdown, "ALL");
-  }
-  window.populateFilterMapelDropdown = populateFilterMapelDropdown;
-
-  /* ==========================================================================
-     EXPORT LAPORAN PELANGGARAN KE PDF RESMI BER-KOP SURAT
-     ========================================================================== */
-
-  function exportPelanggaranToPdf() {
-    if (typeof window.jspdf === "undefined" || !window.jspdf.jsPDF) {
-      showToast("Pustaka PDF sedang dimuat, silakan coba beberapa saat lagi.", "warning");
-      return;
-    }
-
-    var filterMapel = document.getElementById("pdfFilterMapel") ? document.getElementById("pdfFilterMapel").value : "semua";
-
-    showLoading(true, "Menyusun Berita Acara & Dokumen PDF...");
-
-    callBackend("apiGetLogPelanggaran", filterMapel, function (res) {
-      showLoading(false);
-      var logs = (res && res.status === "success") ? res.list : [];
-
-      if (logs.length === 0) {
-        showToast("Tidak ada data pelanggaran untuk mata pelajaran ini.", "info");
-        return;
-      }
-
-      generateOfficialPdfDocument(logs, filterMapel);
-    });
-  }
-
-  function generateOfficialPdfDocument(logs, filterMapel) {
-    var doc = new window.jspdf.jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4"
-    });
-
-    var pageWidth = doc.internal.pageSize.getWidth();
-    var now = new Date();
-    var months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-    var tanggalCetakStr = now.getDate() + " " + months[now.getMonth()] + " " + now.getFullYear();
-
-    // 1. KOP SURAT RESMI
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("PEMERINTAH KABUPATEN OGAN KOMERING ILIR", pageWidth / 2, 16, { align: "center" });
-    doc.setFontSize(12);
-    doc.text("DINAS PENDIDIKAN DAN KEBUDAYAAN", pageWidth / 2, 22, { align: "center" });
-    doc.setFontSize(14);
-    doc.text("SMP NEGERI 1 MESUJI MAKMUR", pageWidth / 2, 29, { align: "center" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-    doc.text("Alamat: Jl. Raya Mesuji Makmur, Kec. Mesuji Makmur, Kab. Ogan Komering Ilir, Sumatera Selatan 30682", pageWidth / 2, 34, { align: "center" });
-
-    // Garis Pembatas Kop Ganda
-    doc.setLineWidth(0.8);
-    doc.line(14, 37, pageWidth - 14, 37);
-    doc.setLineWidth(0.2);
-    doc.line(14, 38.2, pageWidth - 14, 38.2);
-
-    // 2. JUDUL DOKUMEN
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11.5);
-    doc.text("BERITA ACARA & LAPORAN PELANGGARAN UJIAN BERBASIS KOMPUTER", pageWidth / 2, 46, { align: "center" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9.5);
-    doc.text("Sistem Pengawasan SmartTest V. 1.2 - Tahun Ajaran 2026/2027", pageWidth / 2, 51, { align: "center" });
-
-    // 3. METADATA
-    var startY = 58;
-    doc.setFontSize(9);
-    doc.text("Mata Pelajaran : " + (filterMapel === "semua" ? "Semua Mata Pelajaran" : filterMapel), 14, startY);
-    doc.text("Tanggal Cetak   : " + tanggalCetakStr, 14, startY + 5);
-    doc.text("Pengawas          : " + (AppState.guruLoggedIn ? AppState.guruLoggedIn.nama : "Guru Pengawas"), 14, startY + 10);
-
-    // 4. TABEL PELANGGARAN MENGGUNAKAN JSPDF-AUTOTABLE
-    var tableRows = [];
-    for (var i = 0; i < logs.length; i++) {
-      var item = logs[i];
-      tableRows.push([
-        (i + 1).toString(),
-        item.waktu,
-        item.siswa,
-        item.kelas + "\n" + item.noPeserta,
-        item.mapel,
-        item.jenis,
-        item.total.toString(),
-        item.status
-      ]);
-    }
-
-    doc.autoTable({
-      startY: startY + 14,
-      head: [["No", "Waktu", "Nama Siswa", "Kelas / No. Peserta", "Mata Pelajaran", "Jenis Pelanggaran", "Total", "Status"]],
-      body: tableRows,
-      theme: "grid",
-      headStyles: {
-        fillColor: [30, 41, 59],
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-        fontSize: 8,
-        halign: "center"
-      },
-      bodyStyles: {
-        fontSize: 7.5,
-        textColor: [30, 41, 59]
-      },
-      columnStyles: {
-        0: { halign: "center", cellWidth: 8 },
-        1: { cellWidth: 24 },
-        2: { fontStyle: "bold", cellWidth: 32 },
-        3: { cellWidth: 26 },
-        4: { cellWidth: 30 },
-        5: { cellWidth: 40 },
-        6: { halign: "center", cellWidth: 10 },
-        7: { halign: "center", cellWidth: 18 }
-      },
-      margin: { left: 14, right: 14 },
-      didDrawPage: function (data) {
-        doc.setFontSize(7.5);
-        doc.text("Dicetak otomatis melalui Aplikasi SmartTest V. 1.2 - SMPN 1 Mesuji Makmur", 14, doc.internal.pageSize.getHeight() - 10);
-        doc.text("Halaman " + doc.internal.getNumberOfPages(), pageWidth - 30, doc.internal.pageSize.getHeight() - 10);
-      }
-    });
-
-    // 5. KOLOM TANDA TANGAN RESMI
-    var finalY = doc.lastAutoTable.finalY + 14;
-    if (finalY > doc.internal.pageSize.getHeight() - 45) {
-      doc.addPage();
-      finalY = 25;
-    }
-
-    var colRight = pageWidth - 65;
-    var colLeft = 20;
-
-    doc.setFontSize(9);
-    doc.text("Mengetahui,", colLeft, finalY);
-    doc.text("Kepala SMPN 1 Mesuji Makmur,", colLeft, finalY + 5);
-
-    doc.text("Mesuji Makmur, " + tanggalCetakStr, colRight, finalY);
-    doc.text("Guru / Pengawas Ujian,", colRight, finalY + 5);
-
-    var signOffset = 25;
-    doc.setFont("helvetica", "bold");
-    doc.text("Drs. H. Mulyadi, M.M.", colLeft, finalY + signOffset);
-    doc.setFont("helvetica", "normal");
-    doc.text("NIP. 19680512 199303 1 004", colLeft, finalY + signOffset + 4);
-
-    var guruNama = AppState.guruLoggedIn ? AppState.guruLoggedIn.nama : "Budi Santoso, S.Pd.";
-    doc.setFont("helvetica", "bold");
-    doc.text(guruNama, colRight, finalY + signOffset);
-    doc.setFont("helvetica", "normal");
-    doc.text("NIP. ....................................", colRight, finalY + signOffset + 4);
-
-    var cleanFileName = "Laporan_Pelanggaran_" + filterMapel.replace(/[^a-zA-Z0-9]/g, "_") + "_" + now.getTime() + ".pdf";
-    doc.save(cleanFileName);
-    showToast("Laporan PDF berhasil diunduh!", "success");
-  }
-  window.exportPelanggaranToPdf = exportPelanggaranToPdf;
-
-  /* ==========================================================================
-     UTILITY HELPERS (TOAST, LOADING & ESCAPING)
-     ========================================================================== */
-
-  function showToast(message, type) {
-    var toast = document.getElementById("appToast");
-    if (!toast) return;
-
-    var colors = {
-      info: "bg-blue-600 text-white",
-      success: "bg-emerald-600 text-white",
-      warning: "bg-amber-500 text-white",
-      error: "bg-red-600 text-white"
-    };
-
-    toast.className = "fixed bottom-5 right-5 z-[9999] px-4 py-3 rounded-xl shadow-2xl font-medium text-sm flex items-center space-x-2 transition-all transform duration-300 " + (colors[type] || colors.info);
-    toast.innerHTML = "<span>" + message + "</span>";
-    toast.classList.remove("hidden", "translate-y-10", "opacity-0");
-
-    setTimeout(function () {
-      toast.classList.add("translate-y-10", "opacity-0");
-      setTimeout(function () { toast.classList.add("hidden"); }, 300);
-    }, 3500);
-  }
-
-  var _loadingSafetyTimer = null;
-  function showLoading(show, message) {
-    var overlay = document.getElementById("appLoadingOverlay");
-    var text = document.getElementById("loadingOverlayText");
-    if (!overlay) return;
-
-    if (_loadingSafetyTimer) {
-      clearTimeout(_loadingSafetyTimer);
-      _loadingSafetyTimer = null;
-    }
-
-    if (show) {
-      if (text) text.innerText = message || "Memproses...";
-      overlay.classList.remove("hidden");
-      overlay.style.display = "flex";
-
-      // Auto-dismiss safety timer (maksimal 10 detik agar UI tidak beku bila koneksi internet/GAS tertunda)
-      _loadingSafetyTimer = setTimeout(function () {
-        if (overlay) {
-          overlay.classList.add("hidden");
-          overlay.style.display = "none";
-        }
-      }, 10000);
-    } else {
-      overlay.classList.add("hidden");
-      overlay.style.display = "none";
-    }
-  }
-  window.showLoading = showLoading;
-
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
-
-  /* ==========================================================================
-     MANAJEMEN USER GURU DI PANEL PENGAWAS
-     ========================================================================== */
-
-  function loadGuruList() {
-    var tbody = document.getElementById("guruDataTbody");
-    if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-400 font-semibold">Memuat daftar guru...</td></tr>';
-
-    callBackend("apiGetGuruList", null, function (res) {
-      if (res && res.status === "success" && Array.isArray(res.list)) {
-        AppState.cachedGuruList = res.list;
-        renderGuruTable(res.list);
-      } else {
-        tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-red-500 font-semibold">' + (res ? res.message : "Gagal memuat daftar guru.") + '</td></tr>';
-      }
-    });
-  }
-
-  function renderGuruTable(list) {
-    var tbody = document.getElementById("guruDataTbody");
-    if (!tbody) return;
-
-    if (!list || list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-400">Belum ada akun guru. Klik "+ Tambah Guru Baru" di atas.</td></tr>';
-      return;
-    }
-
-    var html = "";
-    for (var i = 0; i < list.length; i++) {
-      var g = list[i];
-      var isAktif = (g.status || "Aktif").toLowerCase() === "aktif";
-      var statusBadge = isAktif
-        ? '<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">Aktif</span>'
-        : '<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-100 text-slate-600 border border-slate-300">Nonaktif</span>';
-
-      html += '<tr class="border-b border-slate-100 hover:bg-slate-50 transition">' +
-        '<td class="py-3 px-4 font-mono font-bold text-slate-500">' + escapeHtml(g.id) + '</td>' +
-        '<td class="py-3 px-4 font-black text-slate-800">' + escapeHtml(g.nama) + '</td>' +
-        '<td class="py-3 px-4 font-semibold text-blue-600">' + escapeHtml(g.username) + '</td>' +
-        '<td class="py-3 px-4 font-mono text-slate-600">' + escapeHtml(g.password) + '</td>' +
-        '<td class="py-3 px-4 font-medium text-slate-700">' + escapeHtml(g.mapel || "Umum") + '</td>' +
-        '<td class="py-3 px-4">' + statusBadge + '</td>' +
-        '<td class="py-3 px-4 text-right space-x-1.5 whitespace-nowrap">' +
-        '<button onclick="openModalEditGuru(\'' + escapeHtml(g.id) + '\')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold px-2.5 py-1 rounded-lg transition text-xs">Edit</button>' +
-        '<button onclick="deleteGuruSubmit(\'' + escapeHtml(g.id) + '\', \'' + escapeHtml(g.nama).replace(/'/g, "\\'") + '\')" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold px-2.5 py-1 rounded-lg transition text-xs">Hapus</button>' +
-        '</td>' +
-        '</tr>';
-    }
-    tbody.innerHTML = html;
-  }
-
-  function openModalTambahGuru() {
-    document.getElementById("modalGuruTitle").innerText = "Tambah Guru Baru";
-    document.getElementById("guruFormId").value = "";
-    document.getElementById("guruFormNama").value = "";
-    document.getElementById("guruFormUser").value = "";
-    document.getElementById("guruFormPass").value = "";
-    document.getElementById("guruFormMapel").value = "";
-    document.getElementById("guruFormStatus").value = "Aktif";
-    openModal("modalFormGuru");
-  }
-  window.openModalTambahGuru = openModalTambahGuru;
-
-  function openModalEditGuru(id) {
-    var list = AppState.cachedGuruList || [];
-    var target = null;
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].id === id) {
-        target = list[i];
-        break;
-      }
-    }
-    if (!target) {
-      showToast("Data guru tidak ditemukan.", "error");
-      return;
-    }
-
-    document.getElementById("modalGuruTitle").innerText = "Edit Data Guru";
-    document.getElementById("guruFormId").value = target.id;
-    document.getElementById("guruFormNama").value = target.nama;
-    document.getElementById("guruFormUser").value = target.username;
-    document.getElementById("guruFormPass").value = target.password;
-    document.getElementById("guruFormMapel").value = target.mapel || "";
-    document.getElementById("guruFormStatus").value = target.status || "Aktif";
-    openModal("modalFormGuru");
-  }
-  window.openModalEditGuru = openModalEditGuru;
-
-  function saveGuruSubmit() {
-    var id = document.getElementById("guruFormId").value.trim();
-    var nama = document.getElementById("guruFormNama").value.trim();
-    var username = document.getElementById("guruFormUser").value.trim();
-    var password = document.getElementById("guruFormPass").value.trim();
-    var mapel = document.getElementById("guruFormMapel").value.trim();
-    var status = document.getElementById("guruFormStatus").value;
-
-    if (!nama || !username) {
-      showToast("Nama dan Username guru wajib diisi!", "warning");
-      return;
-    }
-
-    var payload = {
-      id: id,
-      nama: nama,
-      username: username,
-      password: password || "123",
-      mapel: mapel || "Umum",
-      status: status
-    };
-
-    var isEdit = Boolean(id);
-    showModernConfirm({
-      title: isEdit ? "Simpan Perubahan Guru" : "Tambah Guru Pengawas",
-      message: isEdit
-        ? "Apakah Anda yakin ingin menyimpan perubahan data pengawas '" + nama + "'?"
-        : "Apakah data akun guru pengawas '" + nama + "' sudah benar?",
-      type: "primary",
-        icon: isEdit ? "" : "",
-      btnText: isEdit ? "Ya, Simpan Perubahan" : "Ya, Tambahkan Guru"
-    }, function () {
-      showLoading(true, "Menyimpan data guru...");
-      callBackend("apiSaveGuru", payload, function (res) {
-        showLoading(false);
-        if (res && res.status === "success") {
-          closeModal("modalFormGuru");
-          showToast(res.message || "Data guru berhasil disimpan!", "success");
-          loadGuruList();
-        } else {
-          showToast(res ? res.message : "Gagal menyimpan data guru.", "error");
-        }
-      });
-    });
-  }
-  window.saveGuruSubmit = saveGuruSubmit;
-
-  function deleteGuruSubmit(id, nama) {
-    showModernConfirm({
-      title: "Hapus Akun Pengawas",
-      message: "Apakah Anda yakin ingin menghapus akun guru '" + nama + "' dari daftar pengawas? Tindakan ini tidak dapat dibatalkan.",
-      type: "danger",
-        icon: "",
-      btnText: "Ya, Hapus Akun"
-    }, function () {
-      showLoading(true, "Menghapus akun guru...");
-      callBackend("apiDeleteGuru", id, function (res) {
-        showLoading(false);
-        if (res && res.status === "success") {
-          showToast(res.message || "Akun guru berhasil dihapus!", "success");
-          loadGuruList();
-        } else {
-          showToast(res ? res.message : "Gagal menghapus akun guru.", "error");
-        }
-      });
-    });
-  }
-  window.deleteGuruSubmit = deleteGuruSubmit;
-
-  /* ==========================================================================
-     KARTU PESERTA UJIAN (100% DESIGN REPLICA) & CODE 39 BARCODE
-     ========================================================================== */
-
-  var code39Patterns = {
-    '0': '000110100', '1': '100100001', '2': '001100001', '3': '101100000',
-    '4': '000110001', '5': '100110000', '6': '001110000', '7': '000100101',
-    '8': '100100100', '9': '001100100', 'A': '100001001', 'B': '001001001',
-    'C': '101001000', 'D': '000011001', 'E': '100011000', 'F': '001011000',
-    'G': '000001101', 'H': '100001100', 'I': '001001100', 'J': '000011100',
-    'K': '100000011', 'L': '001000011', 'M': '101000010', 'N': '000010011',
-    'O': '100010010', 'P': '001010010', 'Q': '000000111', 'R': '100000110',
-    'S': '001000110', 'T': '000010110', 'U': '110000001', 'V': '011000001',
-    'W': '111000000', 'X': '010010001', 'Y': '110010000', 'Z': '011010000',
-    '-': '010000101', '.': '110000100', ' ': '011000100', '*': '010010100'
-  };
-
-  function generateQrCodeImageHtml(rawText, size) {
-    var s = size || 68;
-    var clean = String(rawText || "").trim();
-    if (!clean) clean = "SMPN1";
-    return '<div class="kartu-qr-box" data-code="' + escapeHtml(clean) + '" style="width:' + s + 'px; height:' + s + 'px; margin:0 auto; display:flex; align-items:center; justify-content:center; background:#ffffff;"></div>';
-  }
-
-  function generateBarcodeSvg(rawText, height) {
-    var clean = String(rawText || "").toUpperCase().replace(/[^0-9A-Z\-\. ]/g, "");
-    if (!clean) clean = "SMPN1";
-    var text = "*" + clean + "*";
-    var h = height || 32;
-    var narrow = 1.1;
-    var wide = 2.8;
-    var interChar = narrow;
-    var x = 6;
-    var rects = [];
-
-    for (var i = 0; i < text.length; i++) {
-      var ch = text[i];
-      var pattern = code39Patterns[ch] || code39Patterns['-'];
-      for (var b = 0; b < 9; b++) {
-        var isBar = (b % 2 === 0);
-        var width = (pattern[b] === '1') ? wide : narrow;
-        if (isBar) {
-          rects.push('<rect x="' + x.toFixed(1) + '" y="0" width="' + width.toFixed(1) + '" height="' + h + '" fill="#000000" />');
-        }
-        x += width;
-      }
-      x += interChar;
-    }
-    var totalWidth = Math.ceil(x + 6);
-    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + totalWidth + ' ' + h + '" width="100%" height="' + h + '" preserveAspectRatio="none">' + rects.join('') + '</svg>';
-  }
-
-  function loadKartuUjianSiswa() {
-    var grid = document.getElementById("kartuUjianGrid");
-    var filterKelas = document.getElementById("filterKartuKelas") ? document.getElementById("filterKartuKelas").value : "Semua";
-    if (!grid) return;
-
-    grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400 font-semibold"><div class="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>Menyiapkan kartu peserta ujian...</div>';
-
-    var fetchStudents = function () {
-      callBackend("apiGetSiswaList", filterKelas, function (res) {
-        if (res && res.status === "success" && Array.isArray(res.list)) {
-          AppState.cachedSiswaList = res.list;
-          renderKartuUjianList(res.list);
-        } else {
-          grid.innerHTML = '<div class="col-span-full py-12 text-center text-red-500 font-semibold">' + (res ? res.message : "Gagal memuat data siswa.") + '</div>';
-        }
-      });
-    };
-
-    if (!AppState.kartuConfig) {
-      callBackend("apiGetKartuConfig", null, function (cRes) {
-        if (cRes && cRes.status === "success") {
-          AppState.kartuConfig = cRes;
-        } else {
-          AppState.kartuConfig = {
-            namaUjian: "ASESMEN SUMATIF AKHIR SEMESTER (ASAS)",
-            tahunAjaran: "2026/2027",
-            barcodeType: "barcode",
-            fotoMap: {}
-          };
-        }
-        try {
-          var localFoto = localStorage.getItem("ST_FOTO_MAP");
-          if (localFoto) {
-            var parsed = JSON.parse(localFoto);
-            if (parsed && typeof parsed === "object") {
-              AppState.kartuConfig.fotoMap = Object.assign({}, parsed, AppState.kartuConfig.fotoMap || {});
-            }
-          }
-        } catch (e) {}
-        fetchStudents();
-      });
-    } else {
-      fetchStudents();
-    }
-  }
-  window.loadKartuUjianSiswa = loadKartuUjianSiswa;
-
-  function getRuangForStudent(s) {
-    try {
-      if (!s) return "-";
-      // 1. Jika sudah ada properti s.ruang yang valid (bukan strip atau kosong), utamakan itu
-      if (s.ruang && String(s.ruang).trim().length > 0 && String(s.ruang).trim() !== "-") {
-        return String(s.ruang).trim();
-      }
-
-      // 2. Cek langsung rumus cerdas nomor peserta (cepat, akurat, anti-gagal)
-      var noPeserta = String(s.noPeserta || "").trim().replace(/^\*+|\*+$/g, "");
-      var m = noPeserta.match(/([789])\.1\.02\.02\.(\d{1,4})/);
-      var grade = 0;
-      var seq = 0;
-
-      if (m) {
-        grade = parseInt(m[1], 10);
-        seq = parseInt(m[2], 10);
-      } else {
-        var kStr = String(s.kelas || "").toUpperCase();
-        if (kStr.indexOf("7") !== -1 || kStr.indexOf("VII") !== -1) grade = 7;
-        else if (kStr.indexOf("8") !== -1 || kStr.indexOf("VIII") !== -1) grade = 8;
-        else if (kStr.indexOf("9") !== -1 || kStr.indexOf("IX") !== -1) grade = 9;
-
-        var trailing = noPeserta.match(/(\d{1,4})(?:\D*)$/);
-        if (trailing) seq = parseInt(trailing[1], 10);
-      }
-
-      var cfgRuangan = (typeof DENAH_CONFIG !== "undefined" && Array.isArray(DENAH_CONFIG.ruangan)) ? DENAH_CONFIG.ruangan : [
-        { id: "Ruang 01", k7: 20, k8: 20, k9: 0 },
-        { id: "Ruang 02", k7: 13, k8: 13, k9: 14 },
-        { id: "Ruang 03", k7: 13, k8: 13, k9: 14 },
-        { id: "Ruang 04", k7: 13, k8: 13, k9: 14 },
-        { id: "Ruang 05", k7: 13, k8: 13, k9: 14 },
-        { id: "Ruang 06", k7: 13, k8: 14, k9: 13 },
-        { id: "Ruang 07", k7: 13, k8: 14, k9: 13 },
-        { id: "Ruang 08", k7: 14, k8: 14, k9: 12 },
-        { id: "Ruang 09", k7: 14, k8: 14, k9: 12 },
-        { id: "Ruang 10", k7: 0,  k8: 0,  k9: 14 }
-      ];
-
-      if (grade >= 7 && grade <= 9 && seq > 0) {
-        var globalSeq = { 7: 1, 8: 1, 9: 1 };
-        for (var rIdx = 0; rIdx < cfgRuangan.length; rIdx++) {
-          var rmCfg = cfgRuangan[rIdx];
-          var kCount = (grade === 7) ? rmCfg.k7 : ((grade === 8) ? rmCfg.k8 : rmCfg.k9);
-          var startSeq = globalSeq[grade];
-          var endSeq = startSeq + kCount - 1;
-          if (kCount > 0 && seq >= startSeq && seq <= endSeq) {
-            return rmCfg.id;
-          }
-          globalSeq[grade] += kCount;
-        }
-      }
-
-      // 3. Fallback pencocokan denah meja jika cache sudah ada
-      if (AppState.denahAllRoomsCache) {
-        for (var rId in AppState.denahAllRoomsCache) {
-          var rm = AppState.denahAllRoomsCache[rId];
-          if (rm && Array.isArray(rm.desks)) {
-            for (var d = 0; d < rm.desks.length; d++) {
-              var desk = rm.desks[d];
-              var lSeat = desk.leftSeat;
-              if (lSeat && lSeat.isFilled) {
-                if ((s.noPeserta && lSeat.noPeserta === s.noPeserta) ||
-                    (s.nisn && lSeat.nisn && lSeat.nisn === s.nisn) ||
-                    (s.nama && lSeat.nama === s.nama && s.kelas && lSeat.kelasAsal === s.kelas)) {
-                  return rId;
-                }
-              }
-              var rSeat = desk.rightSeat;
-              if (rSeat && rSeat.isFilled) {
-                if ((s.noPeserta && rSeat.noPeserta === s.noPeserta) ||
-                    (s.nisn && rSeat.nisn && rSeat.nisn === s.nisn) ||
-                    (s.nama && rSeat.nama === s.nama && s.kelas && rSeat.kelasAsal === s.kelas)) {
-                  return rId;
-                }
-              }
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.warn("getRuangForStudent error:", e);
-    }
-
-    return "-";
-  }
-  window.getRuangForStudent = getRuangForStudent;
-
-  function renderKartuUjianList(list) {
-    var grid = document.getElementById("kartuUjianGrid");
-    if (!grid) return;
-
-    if (!list || list.length === 0) {
-      grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400">Tidak ada data siswa untuk kelas ini.</div>';
-      return;
-    }
-
-    var kepsekNama = AppState.kepalaSekolah || "Lila Kartika Widya Sari, S. Pd.";
-    var kepsekNip = AppState.nipKepalaSekolah || "197705052005012013";
-
-    var kartuCfg = (AppState && AppState.kartuConfig) ? AppState.kartuConfig : {};
-    var barcodeType = (kartuCfg.barcodeType || "barcode").toLowerCase();
-    var namaUjianText = (kartuCfg.namaUjian || "ASESMEN SUMATIF AKHIR SEMESTER (ASAS)").trim();
-    var rawTahun = (kartuCfg.tahunAjaran || "2026/2027").trim();
-    var tahunAjaranText = rawTahun;
-    if (tahunAjaranText && !tahunAjaranText.toUpperCase().startsWith("TAHUN AJARAN")) {
-      tahunAjaranText = "TAHUN AJARAN " + tahunAjaranText;
-    }
-    var sekolahNama = AppState.sekolah || "SMP NEGERI 1 MESUJI MAKMUR";
-    var fotoMap = (kartuCfg && kartuCfg.fotoMap) ? kartuCfg.fotoMap : {};
-
-    var html = "";
-    for (var i = 0; i < list.length; i++) {
       var s = list[i];
       var codeGraphicHtml = "";
       if (barcodeType === "qrcode") {
-        codeGraphicHtml = generateQrCodeImageHtml(s.noPeserta || s.nisn, 68);
+        codeGraphicHtml = generateQrCodeImageHtml(s.noPeserta || s.nisn, 48);
       } else {
-        var barcodeSvg = generateBarcodeSvg(s.noPeserta || s.nisn, 32);
-        codeGraphicHtml = '<div style="background: #ffffff; padding: 2px 0;">' + barcodeSvg + '</div>';
+        var barcodeSvg = generateBarcodeSvg(s.noPeserta || s.nisn, 20);
+        codeGraphicHtml = '<div style="background: #ffffff; padding: 1px 0;">' + barcodeSvg + '</div>';
       }
 
       var studentNisn = String(s.nisn || "").trim();
@@ -6091,98 +5051,98 @@ if (funcName === "apiClearSiswaList") {
 
       var photoHtml = "";
       if (fotoUrl) {
-        photoHtml = '<div style="width: 86px; height: 112px; border: 1.5px solid #cbd5e1; background: #f8fafc; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">' +
+        photoHtml = '<div style="width: 54px; height: 68px; border: 1.2px solid #cbd5e1; background: #f8fafc; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">' +
           '<img src="' + escapeHtml(fotoUrl) + '" alt="Foto ' + escapeHtml(s.nama) + '" style="width: 100%; height: 100%; object-fit: cover;" onerror="handlePhotoError(this)">' +
           '</div>';
       } else {
-        photoHtml = '<div style="width: 86px; height: 112px; border: 1.5px dashed #475569; background: #f8fafc; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); padding: 4px;">' +
-          '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#64748b" stroke-width="1.6" style="margin-bottom: 4px; opacity: 0.85;">' +
+        photoHtml = '<div style="width: 54px; height: 68px; border: 1.2px dashed #475569; background: #f8fafc; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); padding: 2px;">' +
+          '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#64748b" stroke-width="1.6" style="margin-bottom: 2px; opacity: 0.85;">' +
           '<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>' +
           '</svg>' +
-          '<div style="font-weight: 900; font-size: 10px; letter-spacing: 0.8px; color: #1e293b; text-transform: uppercase;">FOTO</div>' +
-          '<div style="font-weight: 700; font-size: 8.5px; color: #475569; margin-top: 2px;">2 x 3 cm</div>' +
+          '<div style="font-weight: 900; font-size: 7px; letter-spacing: 0.5px; color: #1e293b; text-transform: uppercase;">FOTO</div>' +
+          '<div style="font-weight: 700; font-size: 6px; color: #475569; margin-top: 1px;">2 x 3 cm</div>' +
           '</div>';
       }
 
-      html += '<div class="kartu-peserta-item flex flex-col justify-between" style="min-height: 275px; position: relative; overflow: hidden; background: #ffffff; border: 1.5px solid #0b2f64;">' +
+      html += '<div class="kartu-peserta-item flex flex-col justify-between" style="width: 90mm; height: 80mm; min-height: 80mm; max-height: 80mm; position: relative; overflow: hidden; background: #ffffff; border: 1.2px solid #0b2f64; box-sizing: border-box; border-radius: 8px;">' +
         '<!-- Aksen Geometris Sudut Merah Sisi Kiri & Kanan (Persis Kartu Asli) -->' +
-        '<div style="position: absolute; left: 0; top: 62px; width: 6px; height: 42px; background: #d32f2f; border-top-right-radius: 4px; border-bottom-right-radius: 4px; z-index: 2;"></div>' +
-        '<div style="position: absolute; right: 0; top: 62px; width: 6px; height: 42px; background: #d32f2f; border-top-left-radius: 4px; border-bottom-left-radius: 4px; z-index: 2;"></div>' +
+        '<div style="position: absolute; left: 0; top: 32px; width: 4px; height: 24px; background: #d32f2f; border-top-right-radius: 3px; border-bottom-right-radius: 3px; z-index: 2;"></div>' +
+        '<div style="position: absolute; right: 0; top: 32px; width: 4px; height: 24px; background: #d32f2f; border-top-left-radius: 3px; border-bottom-left-radius: 3px; z-index: 2;"></div>' +
         '<!-- HEADER NAVY RESMI -->' +
-        '<div style="background: #0b2f64; color: #ffffff; padding: 10px 12px 8px; position: relative;">' +
-        '<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">' +
+        '<div style="background: #0b2f64; color: #ffffff; padding: 4px 6px 3px; position: relative;">' +
+        '<div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">' +
         '<!-- Logo Kab. OKI (Kiri) -->' +
-        '<div style="width: 44px; height: 44px; flex-shrink: 0; background: #ffffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 3px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); overflow: hidden;">' +
+        '<div style="width: 26px; height: 26px; flex-shrink: 0; background: #ffffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 1.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.25); overflow: hidden;">' +
         '<img src="https://lh3.googleusercontent.com/d/1-AxzrafsgIrZIxSnxkmOpYpXbnWcTArF" alt="Logo Kab OKI" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.onerror=null; this.src=\'https://drive.google.com/thumbnail?id=1-AxzrafsgIrZIxSnxkmOpYpXbnWcTArF&sz=w200\';">' +
         '</div>' +
         '<!-- Judul Tengah -->' +
-        '<div style="text-align: center; flex: 1; line-height: 1.15;">' +
-        '<div style="font-weight: 900; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;">KARTU PESERTA UJIAN</div>' +
-        '<div style="font-weight: 700; font-size: 8.5px; letter-spacing: 0.3px; text-transform: uppercase; margin-top: 1px;">' + escapeHtml(namaUjianText) + '</div>' +
-        '<div style="font-weight: 900; font-size: 11.5px; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 2px;">' + escapeHtml(sekolahNama) + '</div>' +
-        '<div style="font-weight: 600; font-size: 8px; letter-spacing: 1px; color: #cbd5e1; text-transform: uppercase; margin-top: 1px;">' + escapeHtml(tahunAjaranText) + '</div>' +
+        '<div style="text-align: center; flex: 1; line-height: 1.1;">' +
+        '<div style="font-weight: 900; font-size: 9px; letter-spacing: 0.3px; text-transform: uppercase;">KARTU PESERTA UJIAN</div>' +
+        '<div style="font-weight: 700; font-size: 6.5px; letter-spacing: 0.2px; text-transform: uppercase; margin-top: 0.5px;">' + escapeHtml(namaUjianText) + '</div>' +
+        '<div style="font-weight: 900; font-size: 8px; letter-spacing: 0.3px; text-transform: uppercase; margin-top: 1px;">' + escapeHtml(sekolahNama) + '</div>' +
+        '<div style="font-weight: 600; font-size: 6px; letter-spacing: 0.5px; color: #cbd5e1; text-transform: uppercase; margin-top: 0.5px;">' + escapeHtml(tahunAjaranText) + '</div>' +
         '</div>' +
         '<!-- Logo Sekolah (Kanan) -->' +
-        '<div style="width: 44px; height: 44px; flex-shrink: 0; background: #ffffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 3px; box-shadow: 0 2px 4px rgba(0,0,0,0.25); overflow: hidden;">' +
+        '<div style="width: 26px; height: 26px; flex-shrink: 0; background: #ffffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 1.5px; box-shadow: 0 1px 2px rgba(0,0,0,0.25); overflow: hidden;">' +
         '<img src="https://lh3.googleusercontent.com/d/1xuoXmf_Kjhej5TMiVQmAG2UVm5iwz6EG" alt="Logo Sekolah" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.onerror=null; this.src=\'https://drive.google.com/thumbnail?id=1xuoXmf_Kjhej5TMiVQmAG2UVm5iwz6EG&sz=w200\';">' +
         '</div>' +
         '</div>' +
         '</div>' +
         '<!-- KONTEN BADAN KARTU -->' +
-        '<div style="padding: 10px 14px 6px; display: flex; gap: 12px; flex: 1; align-items: flex-start; background: #ffffff;">' +
+        '<div style="padding: 4px 6px 2px; display: flex; gap: 6px; flex: 1; align-items: flex-start; background: #ffffff; min-height: 0; overflow: hidden;">' +
         '<!-- SISI KIRI: KOTAK FOTO 2x3 & BARCODE -->' +
-        '<div style="width: 95px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center;">' +
+        '<div style="width: 66px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center;">' +
         photoHtml +
-        '<div style="width: 100%; margin-top: 6px; text-align: center;">' +
+        '<div style="width: 100%; margin-top: 3px; text-align: center;">' +
         codeGraphicHtml +
-        '<div style="font-family: var(--font-mono, monospace); font-size: 8.5px; font-weight: 800; color: #0f172a; margin-top: 2px; letter-spacing: 0.5px;">' +
+        '<div style="font-family: var(--font-mono, monospace); font-size: 7px; font-weight: 800; color: #0f172a; margin-top: 1px; letter-spacing: 0.2px;">' +
         escapeHtml(s.noPeserta) +
         '</div>' +
         '</div>' +
         '</div>' +
         '<!-- SISI KANAN: BIODATA & AREA TANDA TANGAN KEPSEK -->' +
-        '<div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-height: 160px;">' +
-        '<table style="width: 100%; font-size: 9.5px; border-collapse: collapse; line-height: 1.5; color: #0f172a;">' +
+        '<div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 0;">' +
+        '<table style="width: 100%; font-size: 7.5px; border-collapse: collapse; line-height: 1.25; color: #0f172a;">' +
         '<tr>' +
-        '<td style="font-weight: 700; width: 68px; padding: 2px 0; vertical-align: top;">No. Peserta</td>' +
-        '<td style="width: 10px; padding: 2px 0; vertical-align: top; font-weight: 800;">:</td>' +
-        '<td style="font-weight: 800; font-family: var(--font-mono, monospace); letter-spacing: 0.3px; padding: 2px 0;">' + escapeHtml(s.noPeserta) + '</td>' +
+        '<td style="font-weight: 700; width: 48px; padding: 0.5px 0; vertical-align: top;">No. Peserta</td>' +
+        '<td style="width: 6px; padding: 0.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
+        '<td style="font-weight: 800; font-family: var(--font-mono, monospace); letter-spacing: 0.2px; padding: 0.5px 0;">' + escapeHtml(s.noPeserta) + '</td>' +
         '</tr>' +
         '<tr>' +
-        '<td style="font-weight: 700; padding: 2px 0; vertical-align: top;">NISN</td>' +
-        '<td style="padding: 2px 0; vertical-align: top; font-weight: 800;">:</td>' +
-        '<td style="font-weight: 800; font-family: var(--font-mono, monospace); padding: 2px 0;">' + escapeHtml(s.nisn || "-") + '</td>' +
+        '<td style="font-weight: 700; padding: 0.5px 0; vertical-align: top;">NISN</td>' +
+        '<td style="padding: 0.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
+        '<td style="font-weight: 800; font-family: var(--font-mono, monospace); padding: 0.5px 0;">' + escapeHtml(s.nisn || "-") + '</td>' +
         '</tr>' +
         '<tr>' +
-        '<td style="font-weight: 700; padding: 2px 0; vertical-align: top;">Nama</td>' +
-        '<td style="padding: 2px 0; vertical-align: top; font-weight: 800;">:</td>' +
-        '<td style="font-weight: 900; text-transform: uppercase; color: #0f172a; padding: 2px 0;">' + escapeHtml(s.nama) + '</td>' +
+        '<td style="font-weight: 700; padding: 0.5px 0; vertical-align: top;">Nama</td>' +
+        '<td style="padding: 0.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
+        '<td style="font-weight: 900; text-transform: uppercase; color: #0f172a; padding: 0.5px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px;">' + escapeHtml(s.nama) + '</td>' +
         '</tr>' +
         '<tr>' +
-        '<td style="font-weight: 700; padding: 2px 0; vertical-align: top;">Kelas</td>' +
-        '<td style="padding: 2px 0; vertical-align: top; font-weight: 800;">:</td>' +
-        '<td style="font-weight: 700; padding: 2px 0;">' + escapeHtml(s.kelas) + '</td>' +
+        '<td style="font-weight: 700; padding: 0.5px 0; vertical-align: top;">Kelas</td>' +
+        '<td style="padding: 0.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
+        '<td style="font-weight: 700; padding: 0.5px 0;">' + escapeHtml(s.kelas) + '</td>' +
         '</tr>' +
         '<tr>' +
-        '<td style="font-weight: 700; padding: 2px 0; vertical-align: top;">Ruang</td>' +
-        '<td style="padding: 2px 0; vertical-align: top; font-weight: 800;">:</td>' +
-        '<td style="font-weight: 700; padding: 2px 0;">' + escapeHtml(s.ruang) + '</td>' +
+        '<td style="font-weight: 700; padding: 0.5px 0; vertical-align: top;">Ruang</td>' +
+        '<td style="padding: 0.5px 0; vertical-align: top; font-weight: 800;">:</td>' +
+        '<td style="font-weight: 700; padding: 0.5px 0;">' + escapeHtml(s.ruang) + '</td>' +
         '</tr>' +
         '</table>' +
         '<!-- RUANG KOSONG TANDA TANGAN MANUAL & CAP BASAH KEPSEK -->' +
-        '<div style="margin-top: 6px; align-self: flex-end; text-align: center; width: 145px; position: relative;">' +
-        '<div style="font-size: 8.5px; font-weight: 600; color: #334155; margin-bottom: 2px;">Kepala Sekolah</div>' +
-        '<!-- Area kosong 52px untuk tanda tangan pulpen & cap basah asli -->' +
-        '<div style="height: 52px;"></div>' +
-        '<div style="font-size: 9px; font-weight: 900; text-decoration: underline; color: #0f172a; line-height: 1.1;">' + escapeHtml(kepsekNama) + '</div>' +
-        '<div style="font-size: 7.5px; font-weight: 700; color: #334155; margin-top: 1px;">NIP. ' + escapeHtml(kepsekNip) + '</div>' +
+        '<div style="margin-top: 2px; align-self: flex-end; text-align: center; width: 110px; position: relative;">' +
+        '<div style="font-size: 6.5px; font-weight: 600; color: #334155;">Kepala Sekolah</div>' +
+        '<!-- Area kosong 24px untuk tanda tangan pulpen & cap basah asli -->' +
+        '<div style="height: 24px;"></div>' +
+        '<div style="font-size: 7px; font-weight: 900; text-decoration: underline; color: #0f172a; line-height: 1.1;">' + escapeHtml(kepsekNama) + '</div>' +
+        '<div style="font-size: 6px; font-weight: 700; color: #334155; margin-top: 0.5px;">NIP. ' + escapeHtml(kepsekNip) + '</div>' +
         '</div>' +
         '</div>' +
         '</div>' +
         '<!-- PITA FOOTER NAVY -->' +
-        '<div style="background: #0b2f64; color: #ffffff; padding: 4px 10px; text-align: center; line-height: 1.25; font-size: 7.5px; font-weight: 600;">' +
+        '<div style="background: #0b2f64; color: #ffffff; padding: 2px 6px; text-align: center; line-height: 1.15; font-size: 6px; font-weight: 600;">' +
         '<div>Harap kartu ini dibawa setiap mengikuti ujian</div>' +
-        '<div style="color: #cbd5e1;">Kartu tidak boleh dicoret-coret atau rusak</div>' +
+        '<div style="color: #cbd5e1; font-size: 5.5px;">Kartu tidak boleh dicoret-coret atau rusak</div>' +
         '</div>' +
         '</div>';
     }
@@ -6199,24 +5159,23 @@ if (funcName === "apiClearSiswaList") {
             if (typeof QRCode !== "undefined") {
               new QRCode(box, {
                 text: textCode,
-                width: 68,
-                height: 68,
+                width: 48,
+                height: 48,
                 colorDark: "#000000",
                 colorLight: "#ffffff",
                 correctLevel: (typeof QRCode.CorrectLevel !== "undefined") ? QRCode.CorrectLevel.M : 0
               });
             } else {
-              box.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=68x68&data=' + encodeURIComponent(textCode) + '" alt="QR" style="width:68px;height:68px;margin:0 auto;display:block;">';
+              box.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=48x48&data=' + encodeURIComponent(textCode) + '" alt="QR" style="width:48px;height:48px;margin:0 auto;display:block;">';
             }
           } catch (qrErr) {
             console.warn("QR render fallback:", qrErr);
-            box.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=68x68&data=' + encodeURIComponent(textCode) + '" alt="QR" style="width:68px;height:68px;margin:0 auto;display:block;">';
+            box.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=48x48&data=' + encodeURIComponent(textCode) + '" alt="QR" style="width:48px;height:48px;margin:0 auto;display:block;">';
           }
         }
       }
     }
   }
-
   window._pendingBatchFotoMap = {};
   var _hasFotoDropEvents = false;
 
