@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 
 <head>
@@ -756,6 +756,17 @@
         </div>
         <div id="cameraTip" class="text-[11px] text-slate-500 mt-2 font-medium">
           Posisikan barcode pada kartu peserta ujian di dalam kotak pemindai kamera.
+        </div>
+        <div class="mt-3">
+          <input type="file" id="inputScanFotoNative" accept="image/*" capture="environment" class="hidden" onchange="handleScanFotoNative(event)">
+          <button type="button" onclick="document.getElementById('inputScanFotoNative').click()"
+            class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2 cursor-pointer">
+            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>Foto Barcode Kartu (Jika Sulit Fokus)</span>
+          </button>
         </div>
       </div>
 
@@ -2598,6 +2609,21 @@
           <p class="text-[11px] text-slate-500 mt-1">Akan otomatis tercetak di header kartu peserta (misal: TAHUN AJARAN 2026/2027).</p>
         </div>
 
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Format Kode Kartu Peserta:</label>
+          <div class="grid grid-cols-2 gap-2.5">
+            <label class="flex items-center p-2.5 bg-slate-50 border border-slate-300 rounded-xl cursor-pointer hover:bg-white transition text-xs font-bold text-slate-700">
+              <input type="radio" name="cfgKartuBarcodeType" value="barcode" checked class="text-indigo-600 focus:ring-indigo-500">
+              <span class="ml-2">Barcode Garis 1D</span>
+            </label>
+            <label class="flex items-center p-2.5 bg-slate-50 border border-slate-300 rounded-xl cursor-pointer hover:bg-white transition text-xs font-bold text-slate-700">
+              <input type="radio" name="cfgKartuBarcodeType" value="qrcode" class="text-indigo-600 focus:ring-indigo-500">
+              <span class="ml-2 text-indigo-700">QR Code 2D (Cepat)</span>
+            </label>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1">Pilih <strong>QR Code 2D</strong> agar kartu ujian dapat di-scan seketika (0.05 detik) oleh semua tipe HP siswa.</p>
+        </div>
+
         <div class="bg-indigo-50/70 border border-indigo-200 p-3.5 rounded-2xl space-y-3">
           <div class="flex items-center justify-between">
             <div>
@@ -3606,9 +3632,11 @@ if (funcName === "apiClearSiswaList") {
       if (!kCfg || typeof kCfg !== "object" || Array.isArray(kCfg)) {
         kCfg = {
           namaUjian: "ASESMEN SUMATIF AKHIR SEMESTER (ASAS)",
-          tahunAjaran: "2026/2027"
+          tahunAjaran: "2026/2027",
+          barcodeType: "barcode"
         };
       }
+      if (!kCfg.barcodeType) kCfg.barcodeType = "barcode";
       var fMap = getStorage("ST_FOTO_MAP", {});
       if (!fMap || typeof fMap !== "object" || Array.isArray(fMap)) {
         fMap = {};
@@ -3622,11 +3650,13 @@ if (funcName === "apiClearSiswaList") {
       if (!currCfg || typeof currCfg !== "object" || Array.isArray(currCfg)) {
         currCfg = {
           namaUjian: "ASESMEN SUMATIF AKHIR SEMESTER (ASAS)",
-          tahunAjaran: "2026/2027"
+          tahunAjaran: "2026/2027",
+          barcodeType: "barcode"
         };
       }
       if (pObj.namaUjian !== undefined) currCfg.namaUjian = pObj.namaUjian;
       if (pObj.tahunAjaran !== undefined) currCfg.tahunAjaran = pObj.tahunAjaran;
+      if (pObj.barcodeType !== undefined) currCfg.barcodeType = pObj.barcodeType;
       setStorage("ST_KARTU_CONFIG", currCfg);
       return { status: "success", message: "Pengaturan kartu ujian berhasil disimpan." };
     }
@@ -3894,20 +3924,24 @@ if (funcName === "apiClearSiswaList") {
 
         AppState.html5QrScanner = new Html5Qrcode("qrReader", {
           formatsToSupport: formats,
-          verbose: false
+          verbose: false,
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true
+          }
         });
 
-        // Kotak bidik pemindai persegi panjang horizontal pas untuk barcode kartu ujian 1D & QR
+        // Kotak bidik pemindai persegi panjang horizontal lebar pas untuk barcode kartu ujian 1D & QR
         var qrboxFunc = function (viewfinderWidth, viewfinderHeight) {
-          var w = Math.min(Math.floor(viewfinderWidth * 0.85), 300);
-          var h = Math.max(Math.floor(w * 0.45), 120);
+          var w = Math.min(Math.floor(viewfinderWidth * 0.92), 340);
+          var h = Math.max(Math.floor(w * 0.52), 140);
           return { width: w, height: h };
         };
 
         var config = {
-          fps: 15,
+          fps: 20,
           qrbox: qrboxFunc,
-          aspectRatio: 1.333
+          aspectRatio: 1.333,
+          disableFlip: true
         };
 
         var onScanSuccess = function (decodedText) {
@@ -3946,39 +3980,52 @@ if (funcName === "apiClearSiswaList") {
           // Abaikan frame pemindaian biasa
         };
 
-        // Prioritaskan kamera belakang (facingMode: environment) di HP Siswa
+        var cameraConstraints = {
+          facingMode: "environment",
+          focusMode: "continuous",
+          width: { min: 640, ideal: 1280, max: 1920 },
+          height: { min: 480, ideal: 720, max: 1080 }
+        };
+
+        // Prioritaskan kamera belakang HD (facingMode: environment) di HP Siswa
         AppState.html5QrScanner.start(
-          { facingMode: "environment" },
+          cameraConstraints,
           config,
           onScanSuccess,
           onScanError
         ).catch(function (err) {
-          console.warn("Kamera environment gagal, mencoba kamera default:", err);
-          // Fallback jika facingMode environment ditolak browser
-          if (typeof Html5Qrcode.getCameras === "function") {
-            Html5Qrcode.getCameras().then(function (devices) {
-              if (devices && devices.length) {
-                var chosen = devices[0].id;
-                // Cari kamera belakang jika ada labelnya
-                for (var i = 0; i < devices.length; i++) {
-                  var label = (devices[i].label || "").toLowerCase();
-                  if (label.indexOf("back") !== -1 || label.indexOf("belakang") !== -1 || label.indexOf("rear") !== -1) {
-                    chosen = devices[i].id;
-                    break;
+          console.warn("Kamera HD environment gagal, mencoba kamera default:", err);
+          AppState.html5QrScanner.start(
+            { facingMode: "environment" },
+            config,
+            onScanSuccess,
+            onScanError
+          ).catch(function (fallbackErr) {
+            console.warn("Fallback facingMode gagal, membaca daftar device:", fallbackErr);
+            if (typeof Html5Qrcode.getCameras === "function") {
+              Html5Qrcode.getCameras().then(function (devices) {
+                if (devices && devices.length) {
+                  var chosen = devices[0].id;
+                  for (var i = 0; i < devices.length; i++) {
+                    var label = (devices[i].label || "").toLowerCase();
+                    if (label.indexOf("back") !== -1 || label.indexOf("belakang") !== -1 || label.indexOf("rear") !== -1) {
+                      chosen = devices[i].id;
+                      break;
+                    }
                   }
+                  AppState.html5QrScanner.start(chosen, config, onScanSuccess, onScanError).catch(function (finalErr) {
+                    showCameraTipError(finalErr);
+                  });
+                } else {
+                  showCameraTipError(fallbackErr);
                 }
-                AppState.html5QrScanner.start(chosen, config, onScanSuccess, onScanError).catch(function (finalErr) {
-                  showCameraTipError(finalErr);
-                });
-              } else {
-                showCameraTipError(err);
-              }
-            }).catch(function () {
-              showCameraTipError(err);
-            });
-          } else {
-            showCameraTipError(err);
-          }
+              }).catch(function () {
+                showCameraTipError(fallbackErr);
+              });
+            } else {
+              showCameraTipError(fallbackErr);
+            }
+          });
         });
       }
     } catch (scanInitErr) {
@@ -3990,9 +4037,66 @@ if (funcName === "apiClearSiswaList") {
   function showCameraTipError(err) {
     var tip = document.getElementById("cameraTip");
     if (tip) {
-      tip.innerHTML = "<span class='text-amber-700 font-bold'>Akses kamera tidak aktif atau memerlukan izin browser. Silakan izinkan akses kamera atau ketikkan NISN/No. Peserta di bawah.</span>";
+      tip.innerHTML = "<span class='text-amber-700 font-bold'>Akses kamera tidak aktif atau memerlukan izin browser. Silakan izinkan akses kamera atau gunakan tombol Foto Barcode / ketik NISN manual di bawah.</span>";
     }
   }
+
+  function handleScanFotoNative(event) {
+    var files = event.target && event.target.files;
+    if (!files || files.length === 0) return;
+    var file = files[0];
+
+    showLoading(true, "Menganalisis foto barcode...");
+
+    var processScanner = AppState.html5QrScanner;
+    var needTempScanner = false;
+    if (!processScanner) {
+      needTempScanner = true;
+      var formats = (typeof Html5QrcodeSupportedFormats !== "undefined") ? [
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.UPC_A
+      ] : undefined;
+      processScanner = new Html5Qrcode("qrReader", {
+        formatsToSupport: formats,
+        verbose: false,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true
+        }
+      });
+    }
+
+    processScanner.scanFile(file, true)
+      .then(function (decodedText) {
+        showLoading(false);
+        if (needTempScanner) {
+          try { processScanner.clear(); } catch (e) { }
+        }
+        var clean = String(decodedText || "").trim();
+        if (clean.indexOf("nisn=") !== -1) {
+          var matchN = clean.match(/nisn=([A-Za-z0-9_-]+)/);
+          if (matchN && matchN[1]) clean = matchN[1];
+        } else if (clean.indexOf("peserta=") !== -1) {
+          var matchP = clean.match(/peserta=([A-Za-z0-9_-]+)/);
+          if (matchP && matchP[1]) clean = matchP[1];
+        }
+        clean = clean.replace(/^\*+|\*+$/g, "").trim();
+
+        SoundEffects.beep(880, 0.15, "sine");
+        showToast("Barcode berhasil dibaca dari foto!", "success");
+        handleValidasiSiswa(clean);
+      })
+      .catch(function (err) {
+        showLoading(false);
+        if (needTempScanner) {
+          try { processScanner.clear(); } catch (e) { }
+        }
+        showToast("Barcode tidak terdeteksi pada foto. Pastikan foto tegak, jelas, dan barcode tidak terpotong.", "warning");
+      });
+  }
+  window.handleScanFotoNative = handleScanFotoNative;
 
   function handleCariSiswaManual() {
     var inputEl = document.getElementById("inputNoPesertaManual");
@@ -5776,6 +5880,13 @@ if (funcName === "apiClearSiswaList") {
     '-': '010000101', '.': '110000100', ' ': '011000100', '*': '010010100'
   };
 
+  function generateQrCodeImageHtml(rawText, size) {
+    var s = size || 68;
+    var clean = String(rawText || "").trim();
+    if (!clean) clean = "SMPN1";
+    return '<div class="kartu-qr-box" data-code="' + escapeHtml(clean) + '" style="width:' + s + 'px; height:' + s + 'px; margin:0 auto; display:flex; align-items:center; justify-content:center; background:#ffffff;"></div>';
+  }
+
   function generateBarcodeSvg(rawText, height) {
     var clean = String(rawText || "").toUpperCase().replace(/[^0-9A-Z\-\. ]/g, "");
     if (!clean) clean = "SMPN1";
@@ -5784,7 +5895,7 @@ if (funcName === "apiClearSiswaList") {
     var narrow = 1.1;
     var wide = 2.8;
     var interChar = narrow;
-    var x = 2;
+    var x = 6;
     var rects = [];
 
     for (var i = 0; i < text.length; i++) {
@@ -5800,7 +5911,7 @@ if (funcName === "apiClearSiswaList") {
       }
       x += interChar;
     }
-    var totalWidth = Math.ceil(x + 2);
+    var totalWidth = Math.ceil(x + 6);
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + totalWidth + ' ' + h + '" width="100%" height="' + h + '" preserveAspectRatio="none">' + rects.join('') + '</svg>';
   }
 
@@ -5830,6 +5941,7 @@ if (funcName === "apiClearSiswaList") {
           AppState.kartuConfig = {
             namaUjian: "ASESMEN SUMATIF AKHIR SEMESTER (ASAS)",
             tahunAjaran: "2026/2027",
+            barcodeType: "barcode",
             fotoMap: {}
           };
         }
@@ -5952,6 +6064,7 @@ if (funcName === "apiClearSiswaList") {
     var kepsekNip = AppState.nipKepalaSekolah || "197705052005012013";
 
     var kartuCfg = (AppState && AppState.kartuConfig) ? AppState.kartuConfig : {};
+    var barcodeType = (kartuCfg.barcodeType || "barcode").toLowerCase();
     var namaUjianText = (kartuCfg.namaUjian || "ASESMEN SUMATIF AKHIR SEMESTER (ASAS)").trim();
     var rawTahun = (kartuCfg.tahunAjaran || "2026/2027").trim();
     var tahunAjaranText = rawTahun;
@@ -5964,7 +6077,13 @@ if (funcName === "apiClearSiswaList") {
     var html = "";
     for (var i = 0; i < list.length; i++) {
       var s = list[i];
-      var barcodeSvg = generateBarcodeSvg(s.noPeserta || s.nisn, 32);
+      var codeGraphicHtml = "";
+      if (barcodeType === "qrcode") {
+        codeGraphicHtml = generateQrCodeImageHtml(s.noPeserta || s.nisn, 68);
+      } else {
+        var barcodeSvg = generateBarcodeSvg(s.noPeserta || s.nisn, 32);
+        codeGraphicHtml = '<div style="background: #ffffff; padding: 2px 0;">' + barcodeSvg + '</div>';
+      }
 
       var studentNisn = String(s.nisn || "").trim();
       var studentNoPeserta = String(s.noPeserta || "").trim();
@@ -6015,9 +6134,7 @@ if (funcName === "apiClearSiswaList") {
         '<div style="width: 95px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center;">' +
         photoHtml +
         '<div style="width: 100%; margin-top: 6px; text-align: center;">' +
-        '<div style="background: #ffffff; padding: 2px 0;">' +
-        barcodeSvg +
-        '</div>' +
+        codeGraphicHtml +
         '<div style="font-family: var(--font-mono, monospace); font-size: 8.5px; font-weight: 800; color: #0f172a; margin-top: 2px; letter-spacing: 0.5px;">' +
         escapeHtml(s.noPeserta) +
         '</div>' +
@@ -6070,6 +6187,34 @@ if (funcName === "apiClearSiswaList") {
         '</div>';
     }
     grid.innerHTML = html;
+
+    if (barcodeType === "qrcode") {
+      var qrBoxes = grid.querySelectorAll(".kartu-qr-box");
+      for (var q = 0; q < qrBoxes.length; q++) {
+        var box = qrBoxes[q];
+        var textCode = box.getAttribute("data-code");
+        if (textCode) {
+          box.innerHTML = "";
+          try {
+            if (typeof QRCode !== "undefined") {
+              new QRCode(box, {
+                text: textCode,
+                width: 68,
+                height: 68,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: (typeof QRCode.CorrectLevel !== "undefined") ? QRCode.CorrectLevel.M : 0
+              });
+            } else {
+              box.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=68x68&data=' + encodeURIComponent(textCode) + '" alt="QR" style="width:68px;height:68px;margin:0 auto;display:block;">';
+            }
+          } catch (qrErr) {
+            console.warn("QR render fallback:", qrErr);
+            box.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=68x68&data=' + encodeURIComponent(textCode) + '" alt="QR" style="width:68px;height:68px;margin:0 auto;display:block;">';
+          }
+        }
+      }
+    }
   }
 
   window._pendingBatchFotoMap = {};
@@ -6241,6 +6386,15 @@ if (funcName === "apiClearSiswaList") {
     if (inputNama) inputNama.value = cfg.namaUjian || "ASESMEN SUMATIF AKHIR SEMESTER (ASAS)";
     if (inputTahun) inputTahun.value = cfg.tahunAjaran || "2026/2027";
 
+    var bType = (cfg.barcodeType || "barcode").toLowerCase();
+    var radioBarcode = document.querySelector('input[name="cfgKartuBarcodeType"][value="barcode"]');
+    var radioQrcode = document.querySelector('input[name="cfgKartuBarcodeType"][value="qrcode"]');
+    if (bType === "qrcode") {
+      if (radioQrcode) radioQrcode.checked = true;
+    } else {
+      if (radioBarcode) radioBarcode.checked = true;
+    }
+
     var fotoCount = (cfg.fotoMap && typeof cfg.fotoMap === "object") ? Object.keys(cfg.fotoMap).length : 0;
     if (badge) {
       if (fotoCount > 0) {
@@ -6265,6 +6419,8 @@ if (funcName === "apiClearSiswaList") {
   function saveKartuConfigAction() {
     var inputNama = document.getElementById("cfgKartuNamaUjian");
     var inputTahun = document.getElementById("cfgKartuTahunAjaran");
+    var selectedRadio = document.querySelector('input[name="cfgKartuBarcodeType"]:checked');
+    var barcodeTypeVal = selectedRadio ? selectedRadio.value : "barcode";
 
     var namaVal = inputNama ? inputNama.value.trim() : "";
     var tahunVal = inputTahun ? inputTahun.value.trim() : "";
@@ -6276,7 +6432,8 @@ if (funcName === "apiClearSiswaList") {
 
     var payload = {
       namaUjian: namaVal,
-      tahunAjaran: tahunVal
+      tahunAjaran: tahunVal,
+      barcodeType: barcodeTypeVal
     };
 
     callBackend("apiSaveKartuConfig", payload, function (res) {
@@ -6284,6 +6441,16 @@ if (funcName === "apiClearSiswaList") {
         if (!AppState.kartuConfig) AppState.kartuConfig = {};
         AppState.kartuConfig.namaUjian = namaVal;
         AppState.kartuConfig.tahunAjaran = tahunVal;
+        AppState.kartuConfig.barcodeType = barcodeTypeVal;
+        try {
+          var savedCfg = getStorage("ST_KARTU_CONFIG", {});
+          if (typeof savedCfg === "object" && !Array.isArray(savedCfg)) {
+            savedCfg.namaUjian = namaVal;
+            savedCfg.tahunAjaran = tahunVal;
+            savedCfg.barcodeType = barcodeTypeVal;
+            setStorage("ST_KARTU_CONFIG", savedCfg);
+          }
+        } catch (e) {}
 
         var pendingPhotos = window._pendingBatchFotoMap || {};
         var pendingKeys = Object.keys(pendingPhotos);
@@ -7431,6 +7598,34 @@ if (funcName === "apiClearSiswaList") {
     }
 
     grid.innerHTML = html;
+
+    if (barcodeType === "qrcode") {
+      var qrBoxes = grid.querySelectorAll(".kartu-qr-box");
+      for (var q = 0; q < qrBoxes.length; q++) {
+        var box = qrBoxes[q];
+        var textCode = box.getAttribute("data-code");
+        if (textCode) {
+          box.innerHTML = "";
+          try {
+            if (typeof QRCode !== "undefined") {
+              new QRCode(box, {
+                text: textCode,
+                width: 68,
+                height: 68,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: (typeof QRCode.CorrectLevel !== "undefined") ? QRCode.CorrectLevel.M : 0
+              });
+            } else {
+              box.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=68x68&data=' + encodeURIComponent(textCode) + '" alt="QR" style="width:68px;height:68px;margin:0 auto;display:block;">';
+            }
+          } catch (qrErr) {
+            console.warn("QR render fallback:", qrErr);
+            box.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=68x68&data=' + encodeURIComponent(textCode) + '" alt="QR" style="width:68px;height:68px;margin:0 auto;display:block;">';
+          }
+        }
+      }
+    }
   }
   window.renderDenahMejaPopup = renderDenahMejaPopup;
 
@@ -8316,227 +8511,3 @@ function downloadTemplateSiswaExcel() {
       var optsGuru = '<option value="">-- Pilih Guru Pengawas --</option>';
       var matched = false;
       for (var g = 0; g < guruList.length; g++) {
-        var gObj = guruList[g];
-        var isSel = (item.namaPengawas && item.namaPengawas.trim().toLowerCase() === gObj.nama.trim().toLowerCase());
-        if (isSel) matched = true;
-        optsGuru += '<option value="' + escapeHtml(gObj.nama) + '"' + (isSel ? ' selected' : '') + '>' + escapeHtml(gObj.nama) + '</option>';
-      }
-      if (item.namaPengawas && !matched) {
-        optsGuru += '<option value="' + escapeHtml(item.namaPengawas) + '" selected>' + escapeHtml(item.namaPengawas) + ' (Manual)</option>';
-      }
-      optsGuru += '<option value="__custom__">+ Ketik Pengawas Luar...</option>';
-
-      var statusBadge = isFilled
-        ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">Terisi</span>'
-        : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">Kosong</span>';
-
-      html += '<tr class="border-b border-slate-100 hover:bg-slate-50 transition">' +
-        '<td class="py-3 px-4 font-bold text-slate-500 text-center">' + (i + 1) + '</td>' +
-        '<td class="py-3 px-4 font-black text-indigo-900"><span class="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200">' + escapeHtml(item.room) + '</span></td>' +
-        '<td class="py-3 px-4">' +
-          '<div class="flex items-center gap-1.5">' +
-            '<select id="plotGuruSelect_' + i + '" onchange="onPlottingGuruSelect(' + i + ', this)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-indigo-500">' +
-              optsGuru +
-            '</select>' +
-            '<input type="text" id="plotGuruCustom_' + i + '" value="' + escapeHtml(item.namaPengawas || '') + '" oninput="onPlottingCustomNameInput(' + i + ', this)" placeholder="Ketik nama..." class="hidden w-full bg-white border border-indigo-400 rounded-xl px-2.5 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-indigo-500" />' +
-          '</div>' +
-        '</td>' +
-        '<td class="py-3 px-4">' +
-          '<input type="text" id="plotNipInput_' + i + '" value="' + escapeHtml(item.nip || '') + '" oninput="onPlottingNipInput(' + i + ', this)" placeholder="NIP (18 digit)..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-mono font-medium focus:ring-2 focus:ring-indigo-500" />' +
-        '</td>' +
-        '<td class="py-3 px-4">' +
-          '<input type="text" id="plotKetInput_' + i + '" value="' + escapeHtml(item.asalSekolah || 'SMPN 1 Mesuji Makmur') + '" oninput="onPlottingKetInput(' + i + ', this)" placeholder="Asal sekolah..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500" />' +
-        '</td>' +
-        '<td class="py-3 px-4 text-center" id="plotStatusCell_' + i + '">' + statusBadge + '</td>' +
-      '</tr>';
-    }
-
-    tbody.innerHTML = html;
-
-    if (document.getElementById("countPlottingRuang")) document.getElementById("countPlottingRuang").innerText = list.length;
-    if (document.getElementById("countPlottingTerisi")) document.getElementById("countPlottingTerisi").innerText = countTerisi;
-    if (document.getElementById("countPlottingKosong")) document.getElementById("countPlottingKosong").innerText = countKosong;
-  }
-  window.renderPlottingTable = renderPlottingTable;
-
-  function onPlottingGuruSelect(index, selectEl) {
-    if (!AppState.plottingPengawas) AppState.plottingPengawas = getDefaultPlottingRooms();
-    var val = selectEl.value;
-    var customInput = document.getElementById("plotGuruCustom_" + index);
-    var nipInput = document.getElementById("plotNipInput_" + index);
-
-    if (val === "__custom__") {
-      selectEl.classList.add("hidden");
-      if (customInput) {
-        customInput.classList.remove("hidden");
-        customInput.focus();
-      }
-      return;
-    }
-
-    AppState.plottingPengawas[index].namaPengawas = val;
-    var guruList = AppState.cachedGuruList || [];
-    for (var g = 0; g < guruList.length; g++) {
-      if (guruList[g].nama === val && guruList[g].nip) {
-        AppState.plottingPengawas[index].nip = guruList[g].nip;
-        if (nipInput) nipInput.value = guruList[g].nip;
-        break;
-      }
-    }
-    updatePlottingRowStatus(index);
-  }
-  window.onPlottingGuruSelect = onPlottingGuruSelect;
-
-  function onPlottingCustomNameInput(index, inputEl) {
-    if (!AppState.plottingPengawas) AppState.plottingPengawas = getDefaultPlottingRooms();
-    AppState.plottingPengawas[index].namaPengawas = inputEl.value;
-    updatePlottingRowStatus(index);
-  }
-  window.onPlottingCustomNameInput = onPlottingCustomNameInput;
-
-  function onPlottingNipInput(index, inputEl) {
-    if (!AppState.plottingPengawas) AppState.plottingPengawas = getDefaultPlottingRooms();
-    AppState.plottingPengawas[index].nip = inputEl.value;
-  }
-  window.onPlottingNipInput = onPlottingNipInput;
-
-  function onPlottingKetInput(index, inputEl) {
-    if (!AppState.plottingPengawas) AppState.plottingPengawas = getDefaultPlottingRooms();
-    AppState.plottingPengawas[index].asalSekolah = inputEl.value;
-  }
-  window.onPlottingKetInput = onPlottingKetInput;
-
-  function updatePlottingRowStatus(index) {
-    var item = AppState.plottingPengawas[index];
-    var isFilled = Boolean(item.namaPengawas && item.namaPengawas.trim());
-    var cell = document.getElementById("plotStatusCell_" + index);
-    if (cell) {
-      cell.innerHTML = isFilled
-        ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">Terisi</span>'
-        : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">Kosong</span>';
-    }
-    var cTerisi = 0;
-    var cKosong = 0;
-    for (var i = 0; i < AppState.plottingPengawas.length; i++) {
-      if (AppState.plottingPengawas[i].namaPengawas && AppState.plottingPengawas[i].namaPengawas.trim()) cTerisi++;
-      else cKosong++;
-    }
-    if (document.getElementById("countPlottingTerisi")) document.getElementById("countPlottingTerisi").innerText = cTerisi;
-    if (document.getElementById("countPlottingKosong")) document.getElementById("countPlottingKosong").innerText = cKosong;
-  }
-
-  function savePlottingPengawas() {
-    if (!AppState.plottingPengawas) AppState.plottingPengawas = getDefaultPlottingRooms();
-    showLoading(true, "Menyimpan Data Plotting Pengawas...");
-    try { localStorage.setItem("ST_PLOTTING_PENGAWAS", JSON.stringify(AppState.plottingPengawas)); } catch (e) {}
-    callBackend("apiSavePlottingPengawas", AppState.plottingPengawas, function (res) {
-      showLoading(false);
-      if (res && res.status === "success") {
-        showToast("Plotting pengawas ruang berhasil disimpan!", "success");
-      } else {
-        showToast("Plotting tersimpan secara lokal.", "info");
-      }
-    });
-  }
-  window.savePlottingPengawas = savePlottingPengawas;
-
-  function printJadwalPengawas() {
-    var list = AppState.plottingPengawas || getDefaultPlottingRooms();
-    var sekolah = AppState.sekolah || "SMPN 1 MESUJI MAKMUR";
-    var kepsek = AppState.kepalaSekolah || "Lila Kartika Widya Sari, S. Pd.";
-    var nipKepsek = AppState.nipKepalaSekolah || "197705052005012013";
-    var alamatSekolah = "Alamat : Jalan Raya Desa Catur Tunggal Kec. Mesuji Makmur Kab. Ogan Komering Ilir Prov. Sumatera Selatan.";
-    var logoOkiUrl = "https://lh3.googleusercontent.com/d/1-AxzrafsgIrZIxSnxkmOpYpXbnWcTArF";
-    var logoSekolahUrl = "https://lh3.googleusercontent.com/d/1xuoXmf_Kjhej5TMiVQmAG2UVm5iwz6EG";
-
-    var todayStr = new Date().toLocaleDateString("id-ID", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric"
-    });
-
-    var rowsHtml = "";
-    for (var i = 0; i < list.length; i++) {
-      var item = list[i];
-      rowsHtml +=
-        '<tr style="border-bottom: 1px solid #cbd5e1; font-size: 11px;">' +
-        '<td style="padding: 7px 8px; text-align: center; font-weight: bold;">' + (i + 1) + '</td>' +
-        '<td style="padding: 7px 8px; font-weight: 800; color: #1e3a8a; text-align: center;">' + escapeHtml(item.room) + '</td>' +
-        '<td style="padding: 7px 8px; font-weight: bold; text-transform: uppercase;">' + escapeHtml(item.namaPengawas || "-") + '</td>' +
-        '<td style="padding: 7px 8px; font-family: monospace; text-align: center;">' + escapeHtml(item.nip || "-") + '</td>' +
-        '<td style="padding: 7px 8px;">' + escapeHtml(item.asalSekolah || "SMPN 1 Mesuji Makmur") + '</td>' +
-        '<td style="padding: 7px 8px; text-align: center; width: 100px;">' + (i % 2 === 0 ? (i + 1) + '. ......' : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + (i + 1) + '. ......') + '</td>' +
-        '</tr>';
-    }
-
-    var printHtml =
-      '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Jadwal Pengawas Ruang - ' + escapeHtml(sekolah) + '</title>' +
-      '<style>' +
-      '@page { size: A4 portrait; margin: 10mm 15mm 10mm 15mm; }' +
-      'body { font-family: Arial, sans-serif; color: #0f172a; margin: 0; padding: 5px; font-size: 11px; }' +
-      'table { width: 100%; border-collapse: collapse; margin-top: 10px; }' +
-      'th { background-color: #f1f5f9; border: 1.5px solid #475569; padding: 7px 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #0f172a; }' +
-      'td { border: 1px solid #94a3b8; }' +
-      '</style></head><body>' +
-      '<!-- KOP SURAT RESMI 2 LOGO -->' +
-      '<div style="display:table; width:100%; border-bottom:3px double #000; padding-bottom:5px; margin-bottom:8px;">' +
-      '<div style="display:table-row;">' +
-      '<div style="display:table-cell; width:12%; text-align:center; vertical-align:middle;">' +
-      '<img src="' + logoOkiUrl + '" style="width:55px; height:auto; max-height:65px; object-fit:contain;" alt="Logo Kab OKI">' +
-      '</div>' +
-      '<div style="display:table-cell; width:76%; text-align:center; vertical-align:middle; line-height:1.25;">' +
-      '<div style="font-size:11pt; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px;">PEMERINTAH KABUPATEN OGAN KOMERING ILIR</div>' +
-      '<div style="font-size:11pt; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px;">DINAS PENDIDIKAN</div>' +
-      '<div style="font-size:14pt; font-weight:900; text-transform:uppercase; color:#0b2f64; margin:1px 0;">' + escapeHtml(sekolah) + '</div>' +
-      '<div style="font-size:8pt; font-style:italic; color:#1e293b;">' + escapeHtml(alamatSekolah) + '</div>' +
-      '</div>' +
-      '<div style="display:table-cell; width:12%; text-align:center; vertical-align:middle;">' +
-      '<img src="' + logoSekolahUrl + '" style="width:55px; height:auto; max-height:65px; object-fit:contain;" alt="Logo Sekolah">' +
-      '</div>' +
-      '</div></div>' +
-      '<div style="text-align: center; margin-bottom: 8px;">' +
-      '<div style="font-size: 12pt; font-weight: 800; text-decoration: underline; text-transform: uppercase;">DAFTAR PENUGASAN PENGAWAS RUANG UJIAN / ASESMEN</div>' +
-      '<div style="font-size: 9pt; font-weight: 600; color: #475569; margin-top: 2px;">' +
-      'TAHUN PELAJARAN 2026/2027 &bull; Dicetak: ' + escapeHtml(todayStr) +
-      '</div>' +
-      '</div>' +
-      '<table>' +
-      '<thead><tr>' +
-      '<th style="width: 30px; text-align: center;">No</th>' +
-      '<th style="width: 90px; text-align: center;">Ruang Ujian</th>' +
-      '<th style="text-align: left; padding-left: 8px;">Nama Guru Pengawas</th>' +
-      '<th style="width: 150px; text-align: center;">NIP</th>' +
-      '<th style="width: 170px; text-align: left; padding-left: 8px;">Asal Sekolah / Keterangan</th>' +
-      '<th style="width: 110px; text-align: center;">Tanda Tangan</th>' +
-      '</tr></thead>' +
-      '<tbody>' + rowsHtml + '</tbody>' +
-      '</table>' +
-      '<!-- TANDA TANGAN KEPALA SEKOLAH -->' +
-      '<div style="margin-top: 25px; display: flex; justify-content: flex-end; page-break-inside: avoid;">' +
-      '<div style="width: 280px; text-align: center; font-size: 9.5pt; line-height: 1.35;">' +
-      '<div>Mesuji Makmur, ' + escapeHtml(todayStr) + '</div>' +
-      '<div style="margin-top: 3px;">Mengetahui,</div>' +
-      '<div style="font-weight: bold; margin-bottom: 60px;">Kepala Sekolah,</div>' +
-      '<div style="font-weight: 800; text-decoration: underline;">' + escapeHtml(kepsek) + '</div>' +
-      '<div style="font-size: 8.5pt; margin-top: 3px;">NIP. ' + escapeHtml(nipKepsek) + '</div>' +
-      '</div></div>' +
-      '</body></html>';
-
-    var printWin = window.open("", "_blank");
-    if (printWin) {
-      printWin.document.open();
-      printWin.document.write(printHtml);
-      printWin.document.close();
-      setTimeout(function () {
-        printWin.focus();
-        printWin.print();
-      }, 500);
-    } else {
-      window.print();
-    }
-  }
-  window.printJadwalPengawas = printJadwalPengawas;
-</script>
-</body>
-</html>
