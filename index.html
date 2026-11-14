@@ -1998,7 +1998,7 @@
       <div class="space-y-3">
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Username Pengawas:</label>
-          <input type="text" id="guruUsername" placeholder="Contoh: budi atau siti"
+          <input type="text" id="guruUsername" placeholder="Contoh: admin atau indra"
             class="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold">
         </div>
         <div>
@@ -5036,6 +5036,885 @@ if (funcName === "apiClearSiswaList") {
 
     var html = "";
     for (var i = 0; i < list.length; i++) {
+      var j = list[i];
+      if (!j || !j.mapel) continue;
+      var ket = j.keterangan || "Sesuai Jadwal";
+      var badgeClass = "bg-blue-100 text-blue-800";
+      if (ket === "Sedang Berlangsung") badgeClass = "bg-emerald-100 text-emerald-800 font-bold";
+      if (ket === "Selesai") badgeClass = "bg-slate-200 text-slate-600";
+
+      var cleanJam = formatCleanTime(j.jam);
+      html += "<tr class='border-b border-slate-100 hover:bg-slate-50/80 transition'>" +
+        "<td class='py-3.5 px-4'><div class='font-bold text-slate-800 leading-tight'>" + escapeHtml(j.mapel) + "</div><div class='text-[11px] text-slate-500 font-medium mt-0.5'>Guru: " + escapeHtml(j.guru || "-") + "</div></td>" +
+        "<td class='py-3.5 px-4 text-slate-600 font-medium'>" + escapeHtml(j.kelas) + "</td>" +
+        "<td class='py-3.5 px-4 text-slate-600 font-medium whitespace-nowrap'>" + escapeHtml(j.tanggal) + " &bull; " + cleanJam + " WIB</td>" +
+        "<td class='py-3.5 px-4 text-slate-600 whitespace-nowrap'>" + escapeHtml(j.durasi) + " Menit</td>" +
+        "<td class='py-3.5 px-4 whitespace-nowrap'><span class='inline-block px-2.5 py-1 bg-blue-100 text-blue-800 rounded font-mono font-bold text-xs tracking-wider'>" + escapeHtml(j.token) + "</span></td>" +
+        "<td class='py-3.5 px-4 whitespace-nowrap'><span class='inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold " + badgeClass + "'>" + escapeHtml(ket) + "</span></td>" +
+        "<td class='py-3.5 px-4 text-right whitespace-nowrap space-x-1.5'>" +
+        "<button onclick='openQrModal(\"" + j.token + "\", \"" + escapeHtml(j.mapel) + "\")' class='px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded text-xs font-semibold shadow-sm'>QR Barcode</button>" +
+        "<button onclick='openModalEditJadwal(\"" + j.id + "\")' class='px-2.5 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs font-semibold'>Edit</button>" +
+        "<button onclick='deleteJadwalItem(\"" + j.id + "\")' class='px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs font-semibold'>Hapus</button>" +
+        "</td>" +
+        "</tr>";
+    }
+    tbody.innerHTML = html;
+  }
+
+  function openModalTambahJadwal() {
+    var titleEl = document.getElementById("modalJadwalTitle");
+    if (titleEl) titleEl.innerText = "Tambah Jadwal Ujian";
+    document.getElementById("jadwalFormId").value = "";
+    document.getElementById("jadwalMapel").value = AppState.guruLoggedIn ? AppState.guruLoggedIn.mapel : "";
+    var guruInput = document.getElementById("jadwalGuru");
+    if (guruInput) guruInput.value = AppState.guruLoggedIn ? AppState.guruLoggedIn.nama : "";
+    document.getElementById("jadwalKelas").value = "Kelas IX A";
+    document.getElementById("jadwalTanggal").value = new Date().toISOString().substring(0, 10);
+    document.getElementById("jadwalJam").value = "08:00";
+    document.getElementById("jadwalDurasi").value = "90";
+    document.getElementById("jadwalLink").value = "";
+    generateRandomTokenInput();
+    openModal("modalFormJadwal");
+  }
+  window.openModalTambahJadwal = openModalTambahJadwal;
+
+  function openModalEditJadwal(id) {
+    var item = null;
+    var list = AppState.cachedJadwal || [];
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i].id) === String(id)) {
+        item = list[i];
+        break;
+      }
+    }
+    if (!item) {
+      showToast("Data jadwal tidak ditemukan.", "error");
+      return;
+    }
+
+    var titleEl = document.getElementById("modalJadwalTitle");
+    if (titleEl) titleEl.innerText = "Edit Jadwal Ujian";
+
+    document.getElementById("jadwalFormId").value = item.id || "";
+    document.getElementById("jadwalMapel").value = item.mapel || "";
+    var guruInput = document.getElementById("jadwalGuru");
+    if (guruInput) guruInput.value = item.guru || (AppState.guruLoggedIn ? AppState.guruLoggedIn.nama : "");
+    document.getElementById("jadwalKelas").value = item.kelas || "";
+    document.getElementById("jadwalTanggal").value = item.tanggal || "";
+    document.getElementById("jadwalJam").value = formatCleanTime(item.jam);
+    document.getElementById("jadwalDurasi").value = item.durasi || "90";
+    document.getElementById("jadwalToken").value = item.token || "";
+    document.getElementById("jadwalLink").value = item.link || "";
+
+    openModal("modalFormJadwal");
+  }
+  window.openModalEditJadwal = openModalEditJadwal;
+
+  function generateRandomTokenInput() {
+    var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    var res = "";
+    for (var i = 0; i < 6; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById("jadwalToken").value = res;
+  }
+  window.generateRandomTokenInput = generateRandomTokenInput;
+
+  function saveJadwalSubmit() {
+    var mapel = document.getElementById("jadwalMapel").value.trim();
+    var guruInput = document.getElementById("jadwalGuru");
+    var guru = guruInput ? guruInput.value.trim() : "";
+    if (!guru) guru = AppState.guruLoggedIn ? AppState.guruLoggedIn.nama : "Guru Mata Pelajaran";
+
+    var kelas = document.getElementById("jadwalKelas").value.trim();
+    var tanggal = document.getElementById("jadwalTanggal").value.trim();
+    var jam = document.getElementById("jadwalJam").value.trim();
+    var durasi = document.getElementById("jadwalDurasi").value.trim();
+    var token = document.getElementById("jadwalToken").value.trim().toUpperCase();
+    var link = document.getElementById("jadwalLink").value.trim();
+    var id = document.getElementById("jadwalFormId").value.trim();
+
+    if (!mapel || !kelas || !tanggal || !token) {
+      showToast("Lengkapi mata pelajaran, kelas, tanggal, dan token!", "warning");
+      return;
+    }
+
+    var payload = {
+      id: id,
+      mapel: mapel,
+      kelas: kelas,
+      tanggal: tanggal,
+      jam: jam,
+      durasi: durasi,
+      token: token,
+      link: link,
+      guru: guru
+    };
+
+    var isEdit = Boolean(id);
+    showModernConfirm({
+      title: isEdit ? "Simpan Perubahan Jadwal" : "Terbitkan Jadwal Ujian",
+      message: isEdit
+        ? "Apakah Anda yakin ingin menyimpan perubahan pada jadwal '" + mapel + "' (Guru: " + guru + ")?"
+        : "Apakah jadwal ujian '" + mapel + "' (Guru: " + guru + ") sudah benar dan siap diterbitkan?",
+      type: "primary",
+      icon: isEdit ? "" : "",
+      btnText: isEdit ? "Ya, Simpan Perubahan" : "Ya, Terbitkan Jadwal"
+    }, function () {
+      showLoading(true, "Menyimpan Jadwal Ujian...");
+      callBackend("apiSaveJadwal", payload, function (res) {
+        showLoading(false);
+        if (res && res.status === "success") {
+          closeModal("modalFormJadwal");
+          showToast(res.message, "success");
+          loadGuruJadwalList();
+        } else {
+          showToast(res ? res.message : "Gagal menyimpan jadwal.", "error");
+        }
+      });
+    });
+  }
+  window.saveJadwalSubmit = saveJadwalSubmit;
+
+  function deleteJadwalItem(id) {
+    showModernConfirm({
+      title: "Hapus Jadwal Ujian",
+      message: "Apakah Anda yakin ingin menghapus jadwal ujian ini? Data yang dihapus tidak dapat dipulihkan.",
+      type: "danger",
+      icon: "",
+      btnText: "Ya, Hapus Jadwal"
+    }, function () {
+      showLoading(true, "Menghapus jadwal...");
+      callBackend("apiDeleteJadwal", id, function (res) {
+        showLoading(false);
+        showToast("Jadwal berhasil dihapus.", "info");
+        loadGuruJadwalList();
+      });
+    });
+  }
+  window.deleteJadwalItem = deleteJadwalItem;
+
+  function openQrModal(token, mapel) {
+    document.getElementById("qrModalMapel").innerText = mapel;
+    document.getElementById("qrModalToken").innerText = token;
+
+    var qrContainer = document.getElementById("qrCodeCanvasWrapper");
+    qrContainer.innerHTML = "";
+
+    if (typeof QRCode !== "undefined") {
+      new QRCode(qrContainer, {
+        text: token,
+        width: 200,
+        height: 200,
+        colorDark: "#0f172a",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+
+    openModal("modalViewQr");
+  }
+  window.openQrModal = openQrModal;
+
+  /* ==========================================================================
+     MONITORING PELANGGARAN & RESET KUNCI SISWA
+     ========================================================================== */
+
+  function loadGuruLogList() {
+    var filterMapel = document.getElementById("filterLogMapel") ? document.getElementById("filterLogMapel").value : "semua";
+
+    if (!AppState.cachedJadwal || AppState.cachedJadwal.length === 0) {
+      callBackend("apiGetJadwalList", null, function (resJ) {
+        if (resJ && resJ.status === "success" && resJ.list) {
+          AppState.cachedJadwal = resJ.list;
+          populateFilterMapelDropdown(AppState.cachedJadwal);
+        }
+      });
+    }
+
+    callBackend("apiGetLogPelanggaran", filterMapel, function (res) {
+      if (res && res.status === "success") {
+        AppState.cachedLogs = res.list || [];
+        renderLogTable(AppState.cachedLogs);
+      }
+    });
+  }
+  window.loadGuruLogList = loadGuruLogList;
+  window.resetKunciAction = resetKunciAction;
+
+  function renderLogTable(list) {
+    var tbody = document.getElementById("guruLogTbody");
+    if (!tbody) return;
+
+    if (!list || list.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='8' class='text-center py-8 text-slate-400'>" +
+        "<div class='space-y-1'>" +
+        "<div class='text-2xl'>[OK]</div>" +
+        "<div class='font-bold text-slate-600'>Belum ada catatan pelanggaran siswa. Seluruh siswa tertib!</div>" +
+        "<div class='text-[11px] text-slate-400'>Jika ingin mencoba alur buka kunci, klik tombol <b>'+ Contoh Uji'</b> di pojok kanan atas.</div>" +
+        "</div></td></tr>";
+      return;
+    }
+
+    var html = "";
+    for (var i = 0; i < list.length; i++) {
+      var l = list[i];
+      var badgeClass = "bg-amber-100 text-amber-800 border border-amber-200";
+      if (l.status === "TERKUNCI") badgeClass = "bg-red-100 text-red-800 font-bold border border-red-200 animate-pulse";
+      if (l.status === "DIRESET_GURU") badgeClass = "bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold";
+
+      var actionBtn = "";
+      if (l.status === "TERKUNCI") {
+        actionBtn = "<button onclick='resetKunciAction(\"" + l.id + "\", \"" + l.token + "\", \"" + l.noPeserta + "\")' class='px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow transition active:scale-95 flex items-center justify-center space-x-1 mx-auto' title='Buka kunci ujian peserta ini'><span>Buka Kunci</span></button>";
+      } else if (l.status === "PERINGATAN") {
+        actionBtn = "<button onclick='resetKunciAction(\"" + l.id + "\", \"" + l.token + "\", \"" + l.noPeserta + "\")' class='px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-semibold shadow transition active:scale-95 flex items-center justify-center space-x-1 mx-auto' title='Reset hitungan peringatan'><span>Reset</span></button>";
+      } else {
+        actionBtn = "<span class='inline-flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full'>&check; Telah Dibuka</span>";
+      }
+
+      html += "<tr class='border-b border-slate-100 hover:bg-slate-50 transition'>" +
+        "<td class='py-3 px-3 text-xs text-slate-500 font-mono whitespace-nowrap'>" + l.waktu + "</td>" +
+        "<td class='py-3 px-3 font-bold text-slate-800 whitespace-nowrap'>" + l.siswa + "</td>" +
+        "<td class='py-3 px-3 text-slate-600 whitespace-nowrap'>" + l.kelas + " <span class='font-mono font-bold text-blue-600'>(" + l.noPeserta + ")</span></td>" +
+        "<td class='py-3 px-3 text-slate-700'>" + l.mapel + "</td>" +
+        "<td class='py-3 px-3 text-slate-600 text-xs'>" + l.jenis + "</td>" +
+        "<td class='py-3 px-3 font-bold text-center text-slate-800'>" + l.total + "</td>" +
+        "<td class='py-3 px-3 text-center'><span class='inline-block px-2.5 py-0.5 rounded text-xs " + badgeClass + "'>" + l.status + "</span></td>" +
+        "<td class='py-3 px-3 text-center whitespace-nowrap'>" + actionBtn + "</td>" +
+        "</tr>";
+    }
+    tbody.innerHTML = html;
+  }
+
+  function resetKunciAction(idLog, token, noPeserta) {
+    var displayTarget = noPeserta || idLog || "siswa terpilih";
+    showModernConfirm({
+      title: "Buka Kunci Ujian Siswa",
+      message: "Buka kembali kunci ujian untuk peserta (" + displayTarget + ")? Siswa akan dapat melanjutkan ujian kembali.",
+      type: "primary",
+      icon: "",
+      btnText: "Ya, Buka Kunci"
+    }, function () {
+      showLoading(true, "Membuka kunci siswa " + displayTarget + "...");
+      var param = { idLog: idLog, token: token, noPeserta: noPeserta };
+      callBackend("apiResetKunciSiswa", param, function (res) {
+        showLoading(false);
+        if (res && res.status === "success") {
+          showToast(res.message || "Kunci berhasil dibuka.", "success");
+        } else {
+          showToast((res && res.message) || "Kunci berhasil dibuka.", "info");
+        }
+        loadGuruLogList();
+      });
+    });
+  }
+
+  function handleQuickUnlockAction() {
+    var inputEl = document.getElementById("quickUnlockInput");
+    if (!inputEl) return;
+    var rawVal = String(inputEl.value || "").trim().toUpperCase();
+    if (!rawVal) {
+      showToast("Ketikkan No. Peserta / NISN siswa terlebih dahulu!", "warning");
+      inputEl.focus();
+      return;
+    }
+
+    showModernConfirm({
+      title: "Buka Kunci Cepat Siswa",
+      message: "Buka kunci ujian untuk siswa dengan No. Peserta / NISN: <b>" + rawVal + "</b>?",
+      type: "primary",
+      icon: "",
+      btnText: "Ya, Buka Kunci"
+    }, function () {
+      showLoading(true, "Membuka kunci siswa " + rawVal + "...");
+      var param = { idLog: null, token: null, noPeserta: rawVal };
+      callBackend("apiResetKunciSiswa", param, function (res) {
+        showLoading(false);
+        if (res && res.status === "success") {
+          showToast(res.message || "Kunci berhasil dibuka.", "success");
+          inputEl.value = "";
+          loadGuruLogList();
+        } else {
+          showToast((res && res.message) || "Data siswa tidak ditemukan dalam log pelanggaran.", "error");
+        }
+      });
+    });
+  }
+  window.handleQuickUnlockAction = handleQuickUnlockAction;
+
+  function addSampleTestViolation() {
+    showLoading(true, "Menambahkan data uji pelanggaran...");
+    var now = new Date();
+    var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+    var timeStr = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()) + " " +
+      pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
+
+    var sampleLog = {
+      id: "LOG-" + Date.now().toString().slice(-6),
+      waktu: timeStr,
+      token: "IPA90SMP",
+      mapel: "Ilmu Pengetahuan Alam (IPA)",
+      siswa: "DIMAS ADI SUBANDA",
+      kelas: "Kelas 9-4",
+      noPeserta: "SMPN1-09-012",
+      jenis: "Keluar Mode Ujian / Pindah Tab (Ke-3)",
+      total: 3,
+      status: "TERKUNCI"
+    };
+
+    if (typeof google === "undefined" || !google.script || !google.script.run) {
+      var logs = [];
+      try { logs = JSON.parse(localStorage.getItem("ST_LOG")) || []; } catch (e) { logs = []; }
+      logs.unshift(sampleLog);
+      localStorage.setItem("ST_LOG", JSON.stringify(logs));
+      showLoading(false);
+      showToast("Data contoh uji (Siswa Terkunci) berhasil ditambahkan!", "success");
+      loadGuruLogList();
+    } else {
+      var payload = {
+        token: sampleLog.token,
+        mapel: sampleLog.mapel,
+        namaSiswa: sampleLog.siswa,
+        kelas: sampleLog.kelas,
+        noPeserta: sampleLog.noPeserta,
+        jenis: sampleLog.jenis
+      };
+      callBackend("apiRecordPelanggaran", payload, function (res) {
+        showLoading(false);
+        showToast("Data contoh uji pelanggaran berhasil dicatat ke Spreadsheet!", "success");
+        loadGuruLogList();
+      });
+    }
+  }
+  window.addSampleTestViolation = addSampleTestViolation;
+
+  function formatIndoDayDate(dateStr, timeStr) {
+    if (!dateStr) return "";
+    try {
+      var parts = String(dateStr).trim().split("-");
+      if (parts.length === 3) {
+        var y = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10) - 1;
+        var d = parseInt(parts[2], 10);
+        var dt = new Date(y, m, d);
+        var days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+        var dayName = days[dt.getDay()] || "";
+        var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+        var formatted = (dayName ? dayName + ", " : "") + pad(d) + "-" + pad(m + 1) + "-" + y;
+        if (timeStr) {
+          formatted += " (" + timeStr + " WIB)";
+        }
+        return formatted;
+      }
+    } catch (e) {}
+    return dateStr;
+  }
+  window.formatIndoDayDate = formatIndoDayDate;
+
+  function populateFilterMapelDropdown(jadwalList) {
+    var dropdown = document.getElementById("filterLogMapel");
+    var pdfDropdown = document.getElementById("pdfFilterMapel");
+    var presensiDropdown = document.getElementById("filterPresensiMapel");
+    if (!dropdown && !pdfDropdown && !presensiDropdown) return;
+
+    var list = (jadwalList && jadwalList.length > 0) ? jadwalList : (AppState.cachedJadwal || []);
+
+    var items = [{ val: "semua", label: "Semua Jadwal & Mata Pelajaran" }];
+    var seen = {};
+
+    list.forEach(function (j) {
+      if (!j || !j.mapel) return;
+      var key = String(j.mapel).trim().toLowerCase() + "|" + String(j.tanggal || "").trim();
+      if (!seen[key]) {
+        seen[key] = true;
+        var tglLabel = formatIndoDayDate(j.tanggal, j.jam);
+        var displayLabel = j.mapel + (tglLabel ? " - " + tglLabel : "");
+        items.push({
+          val: j.mapel + (j.tanggal ? "|" + j.tanggal : ""),
+          label: displayLabel
+        });
+      }
+    });
+
+    var createOptions = function (selectEl, defaultVal) {
+      if (!selectEl) return;
+      var curVal = selectEl.value;
+      var opts = "";
+      items.forEach(function (it, idx) {
+        var optVal = (idx === 0 && defaultVal) ? defaultVal : it.val;
+        opts += "<option value='" + escapeHtml(optVal) + "'>" + escapeHtml(it.label) + "</option>";
+      });
+      selectEl.innerHTML = opts;
+      if (curVal && selectEl.querySelector("option[value='" + curVal + "']")) {
+        selectEl.value = curVal;
+      }
+    };
+
+    createOptions(dropdown, "semua");
+    createOptions(pdfDropdown, "semua");
+    createOptions(presensiDropdown, "ALL");
+  }
+  window.populateFilterMapelDropdown = populateFilterMapelDropdown;
+
+  /* ==========================================================================
+     EXPORT LAPORAN PELANGGARAN KE PDF RESMI BER-KOP SURAT
+     ========================================================================== */
+
+  function exportPelanggaranToPdf() {
+    if (typeof window.jspdf === "undefined" || !window.jspdf.jsPDF) {
+      showToast("Pustaka PDF sedang dimuat, silakan coba beberapa saat lagi.", "warning");
+      return;
+    }
+
+    var filterMapel = document.getElementById("pdfFilterMapel") ? document.getElementById("pdfFilterMapel").value : "semua";
+
+    showLoading(true, "Menyusun Berita Acara & Dokumen PDF...");
+
+    callBackend("apiGetLogPelanggaran", filterMapel, function (res) {
+      showLoading(false);
+      var logs = (res && res.status === "success") ? res.list : [];
+
+      if (logs.length === 0) {
+        showToast("Tidak ada data pelanggaran untuk mata pelajaran ini.", "info");
+        return;
+      }
+
+      generateOfficialPdfDocument(logs, filterMapel);
+    });
+  }
+
+  function generateOfficialPdfDocument(logs, filterMapel) {
+    var doc = new window.jspdf.jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4"
+    });
+
+    var pageWidth = doc.internal.pageSize.getWidth();
+    var now = new Date();
+    var months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    var tanggalCetakStr = now.getDate() + " " + months[now.getMonth()] + " " + now.getFullYear();
+
+    // 1. KOP SURAT RESMI
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("PEMERINTAH KABUPATEN OGAN KOMERING ILIR", pageWidth / 2, 16, { align: "center" });
+    doc.setFontSize(12);
+    doc.text("DINAS PENDIDIKAN DAN KEBUDAYAAN", pageWidth / 2, 22, { align: "center" });
+    doc.setFontSize(14);
+    doc.text("SMP NEGERI 1 MESUJI MAKMUR", pageWidth / 2, 29, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.text("Alamat: Jl. Raya Mesuji Makmur, Kec. Mesuji Makmur, Kab. Ogan Komering Ilir, Sumatera Selatan 30682", pageWidth / 2, 34, { align: "center" });
+
+    // Garis Pembatas Kop Ganda
+    doc.setLineWidth(0.8);
+    doc.line(14, 37, pageWidth - 14, 37);
+    doc.setLineWidth(0.2);
+    doc.line(14, 38.2, pageWidth - 14, 38.2);
+
+    // 2. JUDUL DOKUMEN
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11.5);
+    doc.text("BERITA ACARA & LAPORAN PELANGGARAN UJIAN BERBASIS KOMPUTER", pageWidth / 2, 46, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    doc.text("Sistem Pengawasan SmartTest V. 1.2 - Tahun Ajaran 2026/2027", pageWidth / 2, 51, { align: "center" });
+
+    // 3. METADATA
+    var startY = 58;
+    doc.setFontSize(9);
+    doc.text("Mata Pelajaran : " + (filterMapel === "semua" ? "Semua Mata Pelajaran" : filterMapel), 14, startY);
+    doc.text("Tanggal Cetak   : " + tanggalCetakStr, 14, startY + 5);
+    doc.text("Pengawas          : " + (AppState.guruLoggedIn ? AppState.guruLoggedIn.nama : "Guru Pengawas"), 14, startY + 10);
+
+    // 4. TABEL PELANGGARAN MENGGUNAKAN JSPDF-AUTOTABLE
+    var tableRows = [];
+    for (var i = 0; i < logs.length; i++) {
+      var item = logs[i];
+      tableRows.push([
+        (i + 1).toString(),
+        item.waktu,
+        item.siswa,
+        item.kelas + "\n" + item.noPeserta,
+        item.mapel,
+        item.jenis,
+        item.total.toString(),
+        item.status
+      ]);
+    }
+
+    doc.autoTable({
+      startY: startY + 14,
+      head: [["No", "Waktu", "Nama Siswa", "Kelas / No. Peserta", "Mata Pelajaran", "Jenis Pelanggaran", "Total", "Status"]],
+      body: tableRows,
+      theme: "grid",
+      headStyles: {
+        fillColor: [30, 41, 59],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 8,
+        halign: "center"
+      },
+      bodyStyles: {
+        fontSize: 7.5,
+        textColor: [30, 41, 59]
+      },
+      columnStyles: {
+        0: { halign: "center", cellWidth: 8 },
+        1: { cellWidth: 24 },
+        2: { fontStyle: "bold", cellWidth: 32 },
+        3: { cellWidth: 26 },
+        4: { cellWidth: 30 },
+        5: { cellWidth: 40 },
+        6: { halign: "center", cellWidth: 10 },
+        7: { halign: "center", cellWidth: 18 }
+      },
+      margin: { left: 14, right: 14 },
+      didDrawPage: function (data) {
+        doc.setFontSize(7.5);
+        doc.text("Dicetak otomatis melalui Aplikasi SmartTest V. 1.2 - SMPN 1 Mesuji Makmur", 14, doc.internal.pageSize.getHeight() - 10);
+        doc.text("Halaman " + doc.internal.getNumberOfPages(), pageWidth - 30, doc.internal.pageSize.getHeight() - 10);
+      }
+    });
+
+    // 5. KOLOM TANDA TANGAN RESMI
+    var finalY = doc.lastAutoTable.finalY + 14;
+    if (finalY > doc.internal.pageSize.getHeight() - 45) {
+      doc.addPage();
+      finalY = 25;
+    }
+
+    var colRight = pageWidth - 65;
+    var colLeft = 20;
+
+    doc.setFontSize(9);
+    doc.text("Mengetahui,", colLeft, finalY);
+    doc.text("Kepala SMPN 1 Mesuji Makmur,", colLeft, finalY + 5);
+
+    doc.text("Mesuji Makmur, " + tanggalCetakStr, colRight, finalY);
+    doc.text("Guru / Pengawas Ujian,", colRight, finalY + 5);
+
+    var signOffset = 25;
+    doc.setFont("helvetica", "bold");
+    doc.text("Drs. H. Mulyadi, M.M.", colLeft, finalY + signOffset);
+    doc.setFont("helvetica", "normal");
+    doc.text("NIP. 19680512 199303 1 004", colLeft, finalY + signOffset + 4);
+
+    var guruNama = AppState.guruLoggedIn ? AppState.guruLoggedIn.nama : "Budi Santoso, S.Pd.";
+    doc.setFont("helvetica", "bold");
+    doc.text(guruNama, colRight, finalY + signOffset);
+    doc.setFont("helvetica", "normal");
+    doc.text("NIP. ....................................", colRight, finalY + signOffset + 4);
+
+    var cleanFileName = "Laporan_Pelanggaran_" + filterMapel.replace(/[^a-zA-Z0-9]/g, "_") + "_" + now.getTime() + ".pdf";
+    doc.save(cleanFileName);
+    showToast("Laporan PDF berhasil diunduh!", "success");
+  }
+  window.exportPelanggaranToPdf = exportPelanggaranToPdf;
+
+  /* ==========================================================================
+     UTILITY HELPERS (TOAST, LOADING & ESCAPING)
+     ========================================================================== */
+
+  function showToast(message, type) {
+    var toast = document.getElementById("appToast");
+    if (!toast) return;
+
+    var colors = {
+      info: "bg-blue-600 text-white",
+      success: "bg-emerald-600 text-white",
+      warning: "bg-amber-500 text-white",
+      error: "bg-red-600 text-white"
+    };
+
+    toast.className = "fixed bottom-5 right-5 z-[9999] px-4 py-3 rounded-xl shadow-2xl font-medium text-sm flex items-center space-x-2 transition-all transform duration-300 " + (colors[type] || colors.info);
+    toast.innerHTML = "<span>" + message + "</span>";
+    toast.classList.remove("hidden", "translate-y-10", "opacity-0");
+
+    setTimeout(function () {
+      toast.classList.add("translate-y-10", "opacity-0");
+      setTimeout(function () { toast.classList.add("hidden"); }, 300);
+    }, 3500);
+  }
+
+  function showLoading(show, message) {
+    var overlay = document.getElementById("appLoadingOverlay");
+    var text = document.getElementById("loadingOverlayText");
+    if (!overlay) return;
+
+    if (show) {
+      if (text) text.innerText = message || "Memproses...";
+      overlay.classList.remove("hidden");
+      overlay.style.display = "flex";
+    } else {
+      overlay.classList.add("hidden");
+      overlay.style.display = "none";
+    }
+  }
+  window.showLoading = showLoading;
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  /* ==========================================================================
+     MANAJEMEN USER GURU DI PANEL PENGAWAS
+     ========================================================================== */
+
+  function loadGuruList() {
+    var tbody = document.getElementById("guruDataTbody");
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-400 font-semibold">Memuat daftar guru...</td></tr>';
+
+    callBackend("apiGetGuruList", null, function (res) {
+      if (res && res.status === "success" && Array.isArray(res.list)) {
+        AppState.cachedGuruList = res.list;
+        renderGuruTable(res.list);
+      } else {
+        tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-red-500 font-semibold">' + (res ? res.message : "Gagal memuat daftar guru.") + '</td></tr>';
+      }
+    });
+  }
+
+  function renderGuruTable(list) {
+    var tbody = document.getElementById("guruDataTbody");
+    if (!tbody) return;
+
+    if (!list || list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-400">Belum ada akun guru. Klik "+ Tambah Guru Baru" di atas.</td></tr>';
+      return;
+    }
+
+    var html = "";
+    for (var i = 0; i < list.length; i++) {
+      var g = list[i];
+      var isAktif = (g.status || "Aktif").toLowerCase() === "aktif";
+      var statusBadge = isAktif
+        ? '<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">Aktif</span>'
+        : '<span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-100 text-slate-600 border border-slate-300">Nonaktif</span>';
+
+      html += '<tr class="border-b border-slate-100 hover:bg-slate-50 transition">' +
+        '<td class="py-3 px-4 font-mono font-bold text-slate-500">' + escapeHtml(g.id) + '</td>' +
+        '<td class="py-3 px-4 font-black text-slate-800">' + escapeHtml(g.nama) + '</td>' +
+        '<td class="py-3 px-4 font-semibold text-blue-600">' + escapeHtml(g.username) + '</td>' +
+        '<td class="py-3 px-4 font-mono text-slate-600">' + escapeHtml(g.password) + '</td>' +
+        '<td class="py-3 px-4 font-medium text-slate-700">' + escapeHtml(g.mapel || "Umum") + '</td>' +
+        '<td class="py-3 px-4">' + statusBadge + '</td>' +
+        '<td class="py-3 px-4 text-right space-x-1.5 whitespace-nowrap">' +
+        '<button onclick="openModalEditGuru(\'' + escapeHtml(g.id) + '\')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold px-2.5 py-1 rounded-lg transition text-xs">Edit</button>' +
+        '<button onclick="deleteGuruSubmit(\'' + escapeHtml(g.id) + '\', \'' + escapeHtml(g.nama).replace(/'/g, "\\'") + '\')" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold px-2.5 py-1 rounded-lg transition text-xs">Hapus</button>' +
+        '</td>' +
+        '</tr>';
+    }
+    tbody.innerHTML = html;
+  }
+
+  function openModalTambahGuru() {
+    document.getElementById("modalGuruTitle").innerText = "Tambah Guru Baru";
+    document.getElementById("guruFormId").value = "";
+    document.getElementById("guruFormNama").value = "";
+    document.getElementById("guruFormUser").value = "";
+    document.getElementById("guruFormPass").value = "";
+    document.getElementById("guruFormMapel").value = "";
+    document.getElementById("guruFormStatus").value = "Aktif";
+    openModal("modalFormGuru");
+  }
+  window.openModalTambahGuru = openModalTambahGuru;
+
+  function openModalEditGuru(id) {
+    var list = AppState.cachedGuruList || [];
+    var target = null;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) {
+        target = list[i];
+        break;
+      }
+    }
+    if (!target) {
+      showToast("Data guru tidak ditemukan.", "error");
+      return;
+    }
+
+    document.getElementById("modalGuruTitle").innerText = "Edit Data Guru";
+    document.getElementById("guruFormId").value = target.id;
+    document.getElementById("guruFormNama").value = target.nama;
+    document.getElementById("guruFormUser").value = target.username;
+    document.getElementById("guruFormPass").value = target.password;
+    document.getElementById("guruFormMapel").value = target.mapel || "";
+    document.getElementById("guruFormStatus").value = target.status || "Aktif";
+    openModal("modalFormGuru");
+  }
+  window.openModalEditGuru = openModalEditGuru;
+
+  function saveGuruSubmit() {
+    var id = document.getElementById("guruFormId").value.trim();
+    var nama = document.getElementById("guruFormNama").value.trim();
+    var username = document.getElementById("guruFormUser").value.trim();
+    var password = document.getElementById("guruFormPass").value.trim();
+    var mapel = document.getElementById("guruFormMapel").value.trim();
+    var status = document.getElementById("guruFormStatus").value;
+
+    if (!nama || !username) {
+      showToast("Nama dan Username guru wajib diisi!", "warning");
+      return;
+    }
+
+    var payload = {
+      id: id,
+      nama: nama,
+      username: username,
+      password: password || "123",
+      mapel: mapel || "Umum",
+      status: status
+    };
+
+    var isEdit = Boolean(id);
+    showModernConfirm({
+      title: isEdit ? "Simpan Perubahan Guru" : "Tambah Guru Pengawas",
+      message: isEdit
+        ? "Apakah Anda yakin ingin menyimpan perubahan data pengawas '" + nama + "'?"
+        : "Apakah data akun guru pengawas '" + nama + "' sudah benar?",
+      type: "primary",
+      icon: isEdit ? "" : "",
+      btnText: isEdit ? "Ya, Simpan Perubahan" : "Ya, Tambahkan Guru"
+    }, function () {
+      showLoading(true, "Menyimpan data guru...");
+      callBackend("apiSaveGuru", payload, function (res) {
+        showLoading(false);
+        if (res && res.status === "success") {
+          closeModal("modalFormGuru");
+          showToast(res.message || "Data guru berhasil disimpan!", "success");
+          loadGuruList();
+        } else {
+          showToast(res ? res.message : "Gagal menyimpan data guru.", "error");
+        }
+      });
+    });
+  }
+  window.saveGuruSubmit = saveGuruSubmit;
+
+  function deleteGuruSubmit(id, nama) {
+    showModernConfirm({
+      title: "Hapus Akun Pengawas",
+      message: "Apakah Anda yakin ingin menghapus akun guru '" + nama + "' dari daftar pengawas? Tindakan ini tidak dapat dibatalkan.",
+      type: "danger",
+      icon: "",
+      btnText: "Ya, Hapus Akun"
+    }, function () {
+      showLoading(true, "Menghapus akun guru...");
+      callBackend("apiDeleteGuru", id, function (res) {
+        showLoading(false);
+        if (res && res.status === "success") {
+          showToast(res.message || "Akun guru berhasil dihapus!", "success");
+          loadGuruList();
+        } else {
+          showToast(res ? res.message : "Gagal menghapus akun guru.", "error");
+        }
+      });
+    });
+  }
+  window.deleteGuruSubmit = deleteGuruSubmit;
+
+  /* ==========================================================================
+     KARTU PESERTA UJIAN (100% DESIGN REPLICA) & CODE 39 BARCODE
+     ========================================================================== */
+
+  var code39Patterns = {
+    '0': '000110100', '1': '100100001', '2': '001100001', '3': '101100000',
+    '4': '000110001', '5': '100110000', '6': '001110000', '7': '000100101',
+    '8': '100100100', '9': '001100100', 'A': '100001001', 'B': '001001001',
+    'C': '101001000', 'D': '000011001', 'E': '100011000', 'F': '001011000',
+    'G': '000001101', 'H': '100001100', 'I': '001001100', 'J': '000011100',
+    'K': '100000011', 'L': '001000011', 'M': '101000010', 'N': '000010011',
+    'O': '100010010', 'P': '001010010', 'Q': '000000111', 'R': '100000110',
+    'S': '001000110', 'T': '000010110', 'U': '110000001', 'V': '011000001',
+    'W': '111000000', 'X': '010010001', 'Y': '110010000', 'Z': '011010000',
+    '-': '010000101', '.': '110000100', ' ': '011000100', '*': '010010100'
+  };
+
+  
+  function generateQrCodeImageHtml(rawText, size) {
+    var s = size || 48;
+    var clean = String(rawText || "").trim();
+    if (!clean) clean = "SMPN1";
+    return '<div class="kartu-qr-box" data-code="' + escapeHtml(clean) + '" style="width:' + s + 'px; height:' + s + 'px; margin:0 auto; display:flex; align-items:center; justify-content:center; background:#ffffff;"></div>';
+  }
+function generateBarcodeSvg(rawText, height) {
+    var clean = String(rawText || "").toUpperCase().replace(/[^0-9A-Z\-\. ]/g, "");
+    if (!clean) clean = "SMPN1";
+    var text = "*" + clean + "*";
+    var h = height || 32;
+    var narrow = 1.1;
+    var wide = 2.8;
+    var interChar = narrow;
+    var x = 2;
+    var rects = [];
+
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      var pattern = code39Patterns[ch] || code39Patterns['-'];
+      for (var b = 0; b < 9; b++) {
+        var isBar = (b % 2 === 0);
+        var width = (pattern[b] === '1') ? wide : narrow;
+        if (isBar) {
+          rects.push('<rect x="' + x.toFixed(1) + '" y="0" width="' + width.toFixed(1) + '" height="' + h + '" fill="#000000" />');
+        }
+        x += width;
+      }
+      x += interChar;
+    }
+    var totalWidth = Math.ceil(x + 2);
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + totalWidth + ' ' + h + '" width="100%" height="' + h + '" preserveAspectRatio="none">' + rects.join('') + '</svg>';
+  }
+
+  function loadKartuUjianSiswa() {
+    var grid = document.getElementById("kartuUjianGrid");
+    var filterKelas = document.getElementById("filterKartuKelas") ? document.getElementById("filterKartuKelas").value : "Semua";
+    if (!grid) return;
+
+    grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400 font-semibold"><div class="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>Menyiapkan kartu peserta ujian...</div>';
+
+    callBackend("apiGetSiswaList", filterKelas, function (res) {
+      if (res && res.status === "success" && Array.isArray(res.list)) {
+        AppState.cachedSiswaList = res.list;
+        renderKartuUjianList(res.list);
+      } else {
+        grid.innerHTML = '<div class="col-span-full py-12 text-center text-red-500 font-semibold">' + (res ? res.message : "Gagal memuat data siswa.") + '</div>';
+      }
+    });
+  }
+  window.loadKartuUjianSiswa = loadKartuUjianSiswa;
+
+    function renderKartuUjianList(list) {
+    var grid = document.getElementById("kartuUjianGrid");
+    if (!grid) return;
+
+    if (!list || list.length === 0) {
+      grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400">Tidak ada data siswa untuk kelas ini.</div>';
+      return;
+    }
+
+    var kepsekNama = AppState.kepalaSekolah || "Lila Kartika Widya Sari, S. Pd.";
+    var kepsekNip = AppState.nipKepalaSekolah || "197705052005012013";
+    var kartuCfg = (AppState && AppState.kartuConfig) ? AppState.kartuConfig : {};
+    var barcodeType = (kartuCfg.barcodeType || "barcode").toLowerCase();
+    var namaUjianText = (kartuCfg.namaUjian || "ASESMEN SUMATIF AKHIR SEMESTER (ASAS)").trim();
+    var rawTahun = (kartuCfg.tahunAjaran || "2026/2027").trim();
+    var tahunAjaranText = rawTahun;
+    if (tahunAjaranText && !tahunAjaranText.toUpperCase().startsWith("TAHUN AJARAN")) {
+      tahunAjaranText = "TAHUN AJARAN " + tahunAjaranText;
+    }
+    var sekolahNama = AppState.sekolah || "SMP NEGERI 1 MESUJI MAKMUR";
+    var fotoMap = (kartuCfg && kartuCfg.fotoMap) ? kartuCfg.fotoMap : {};
+
+    var html = "";
+    for (var i = 0; i < list.length; i++) {
       var s = list[i];
       var codeGraphicHtml = "";
       if (barcodeType === "qrcode") {
@@ -5176,6 +6055,7 @@ if (funcName === "apiClearSiswaList") {
       }
     }
   }
+
   window._pendingBatchFotoMap = {};
   var _hasFotoDropEvents = false;
 
