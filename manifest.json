@@ -1,0 +1,40 @@
+{
+  "id": "./",
+  "name": "SmartTest V. 1.2 - SMPN 1 Mesuji Makmur",
+  "short_name": "SmartTest",
+  "description": "Aplikasi Web Ujian Berbasis Komputer Anti-Nyontek Resmi SMPN 1 Mesuji Makmur",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f4fbf7",
+  "theme_color": "#0f172a",
+  "lang": "id",
+  "categories": ["education"],
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

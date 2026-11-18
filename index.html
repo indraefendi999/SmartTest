@@ -6,10 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SmartTest V. 1.2 - SMPN 1 MESUJI MAKMUR</title>
 
-  <!-- Favicon Logo Resmi SMPN 1 Mesuji Makmur (Aset Lokal Anti-Pecah) -->
+  <!-- Favicon & PWA Manifest Resmi SMPN 1 Mesuji Makmur (Aset Lokal Anti-Pecah) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SmartTest">
   <link rel="icon" type="image/png" href="assets/logo-smpn1.png">
   <link rel="shortcut icon" type="image/png" href="assets/logo-smpn1.png">
-  <link rel="apple-touch-icon" href="assets/logo-smpn1.png">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -684,6 +689,17 @@
         <span>Anti-Cheat Protected | Toleransi 3 Peringatan</span>
       </div>
 
+      <!-- Tombol Install PWA (Muncul Otomatis Hanya Jika Browser Mendukung Instalasi) -->
+      <div id="pwaInstallBanner" class="hidden pt-1">
+        <button id="btnInstallPwa" type="button" onclick="triggerPwaInstall()"
+          class="w-full flex items-center justify-center space-x-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 px-4 rounded-2xl shadow-md transition border border-slate-700 cursor-pointer">
+          <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span>Pasang Aplikasi SmartTest di Layar Utama (PWA)</span>
+        </button>
+      </div>
+
     </main>
 
   </div>
@@ -974,6 +990,12 @@
           class="flex items-center space-x-1.5 bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 text-[11px] font-bold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl transition border border-slate-700 cursor-pointer">
           <span id="liveCloudStatusDot" class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
           <span id="liveCloudStatusText" class="whitespace-nowrap">Mengecek Cloud...</span>
+        </button>
+        <button id="btnOpenBackupData" type="button" onclick="openModalBackupData()"
+          title="Unduh cadangan arsip data ujian (Excel / JSON)"
+          class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-3 py-2 rounded-xl transition border border-slate-700 flex items-center space-x-1 cursor-pointer">
+          <svg class="w-3.5 h-3.5 text-emerald-400 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span class="hidden sm:inline">Backup</span>
         </button>
         <button type="button" onclick="openModalGantiPasswordGuru()"
           title="Ganti password pengawas"
@@ -2351,6 +2373,82 @@
     </div>
   </div>
 
+  <!-- MODAL: BACKUP ARSIP DATA UJIAN 1-KLIK (TAHAP 3 OPSI B) -->
+  <div id="modalBackupData" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center space-x-2">
+          <span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          </span>
+          <div>
+            <h3 class="font-extrabold text-slate-800 text-base leading-tight">Backup Arsip Data Ujian</h3>
+            <p class="text-[11px] text-slate-500">Unduh salinan lengkap database ujian sekolah (1-Klik)</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modalBackupData')" type="button"
+          class="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer">&times;</button>
+      </div>
+
+      <!-- Ringkasan Jumlah Data -->
+      <div class="grid grid-cols-2 gap-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs">
+        <div class="bg-white rounded-xl p-2.5 border border-slate-100 flex items-center justify-between">
+          <span class="text-slate-500 font-semibold">Data Siswa</span>
+          <span id="backupCountSiswa" class="font-black text-blue-600">...</span>
+        </div>
+        <div class="bg-white rounded-xl p-2.5 border border-slate-100 flex items-center justify-between">
+          <span class="text-slate-500 font-semibold">Jadwal Ujian</span>
+          <span id="backupCountJadwal" class="font-black text-emerald-600">...</span>
+        </div>
+        <div class="bg-white rounded-xl p-2.5 border border-slate-100 flex items-center justify-between">
+          <span class="text-slate-500 font-semibold">Presensi</span>
+          <span id="backupCountPresensi" class="font-black text-indigo-600">...</span>
+        </div>
+        <div class="bg-white rounded-xl p-2.5 border border-slate-100 flex items-center justify-between">
+          <span class="text-slate-500 font-semibold">Pelanggaran</span>
+          <span id="backupCountPelanggaran" class="font-black text-rose-600">...</span>
+        </div>
+      </div>
+
+      <div class="space-y-2.5">
+        <button id="btnExportBackupExcel" type="button" onclick="handleExportBackupExcel()"
+          class="w-full flex items-center justify-between bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-2xl shadow transition cursor-pointer">
+          <div class="flex items-center space-x-3 text-left">
+            <span class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </span>
+            <div>
+              <div class="text-xs font-extrabold">Download Arsip Excel (.XLSX)</div>
+              <div class="text-[10px] text-emerald-100">4 Sheet rapi: Siswa, Jadwal, Presensi, &amp; Pelanggaran</div>
+            </div>
+          </div>
+          <span class="text-xs font-bold bg-white/20 px-2.5 py-1 rounded-lg">Excel</span>
+        </button>
+
+        <button id="btnExportBackupJson" type="button" onclick="handleExportBackupJson()"
+          class="w-full flex items-center justify-between bg-slate-800 hover:bg-slate-900 text-white px-4 py-3 rounded-2xl shadow transition cursor-pointer">
+          <div class="flex items-center space-x-3 text-left">
+            <span class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+            </span>
+            <div>
+              <div class="text-xs font-extrabold">Download Backup Penuh (.JSON)</div>
+              <div class="text-[10px] text-slate-300">Termasuk Denah Ruang, Jadwal Pengawas &amp; Pengaturan</div>
+            </div>
+          </div>
+          <span class="text-xs font-bold bg-white/15 px-2.5 py-1 rounded-lg">JSON</span>
+        </button>
+      </div>
+
+      <div class="pt-1">
+        <button onclick="closeModal('modalBackupData')" type="button"
+          class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2.5 rounded-xl transition cursor-pointer">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: PERINGATAN 1 -->
   <div id="modalWarning1" class="modal-backdrop fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl border-4 border-amber-400">
@@ -3318,6 +3416,9 @@
 
     // Pasang anti-cheat listeners global
     setupAntiCheatListeners();
+
+    // Inisialisasi PWA (Installable Web App - Opsional & Pasif)
+    initPwaEngine();
 
     // Listener tutup modal jika pengguna klik area latar gelap (backdrop) di luar box dialog
     window.addEventListener("click", function (event) {
@@ -7346,6 +7447,250 @@ if (funcName === "apiClearSiswaList") {
     });
   }
   window.handleGantiPasswordSubmit = handleGantiPasswordSubmit;
+
+  /* ==========================================================================
+     FITUR TAHAP 3 OPSI B: PWA (INSTALLABLE WEB APP - OPSIONAL & PASIF)
+     ========================================================================== */
+  var deferredPwaPrompt = null;
+
+  function initPwaEngine() {
+    try {
+      // Daftarkan Service Worker hanya di HTTPS atau localhost (aman dari error di file://)
+      if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+        navigator.serviceWorker.register("./sw.js").catch(function () {
+          // Abaikan secara senyap jika browser membatasi SW
+        });
+      }
+
+      // Tangkap event beforeinstallprompt untuk menampilkan tombol Install secara opsional
+      window.addEventListener("beforeinstallprompt", function (e) {
+        e.preventDefault();
+        deferredPwaPrompt = e;
+        var banner = document.getElementById("pwaInstallBanner");
+        if (banner) banner.classList.remove("hidden");
+      });
+
+      window.addEventListener("appinstalled", function () {
+        deferredPwaPrompt = null;
+        var banner = document.getElementById("pwaInstallBanner");
+        if (banner) banner.classList.add("hidden");
+        showToast("Aplikasi SmartTest berhasil dipasang di perangkat Anda!", "success");
+      });
+    } catch (e) {
+      // Fail-safe silent guard
+    }
+  }
+  window.initPwaEngine = initPwaEngine;
+
+  function triggerPwaInstall() {
+    if (!deferredPwaPrompt) {
+      showToast("Gunakan menu browser ('Tambahkan ke Layar Utama') untuk memasang SmartTest.", "info");
+      return;
+    }
+    deferredPwaPrompt.prompt();
+    deferredPwaPrompt.userChoice.then(function (choiceResult) {
+      if (choiceResult && choiceResult.outcome === "accepted") {
+        var banner = document.getElementById("pwaInstallBanner");
+        if (banner) banner.classList.add("hidden");
+      }
+      deferredPwaPrompt = null;
+    }).catch(function () {
+      deferredPwaPrompt = null;
+    });
+  }
+  window.triggerPwaInstall = triggerPwaInstall;
+
+  /* ==========================================================================
+     FITUR TAHAP 3 OPSI B: BACKUP ARSIP DATA UJIAN 1-KLIK (EXCEL & JSON)
+     ========================================================================== */
+  function collectFullBackupSnapshot(callback) {
+    var snapshot = {
+      metadata: {
+        aplikasi: AppState.versi || "SmartTest V. 1.2",
+        sekolah: AppState.sekolah || "SMPN 1 MESUJI MAKMUR",
+        kepalaSekolah: AppState.kepalaSekolah || "-",
+        nipKepalaSekolah: AppState.nipKepalaSekolah || "-",
+        exportedAt: new Date().toISOString(),
+        exportedBy: (AppState.guruLoggedIn && AppState.guruLoggedIn.nama) ? AppState.guruLoggedIn.nama : "Pengawas Ujian"
+      },
+      siswa: [],
+      jadwal: [],
+      presensi: [],
+      pelanggaran: [],
+      denah: getStorage("ST_DENAH_CONFIG", []),
+      plottingPengawas: AppState.plottingPengawas || getStorage("ST_PLOTTING_PENGAWAS", []),
+      rekapJadwalPengawas: AppState.rekapJadwalPengawas || getStorage("ST_REKAP_PENGAWAS", []),
+      kartuConfig: getStorage("ST_KARTU_CONFIG", {})
+    };
+
+    var pending = 4;
+    var doneOne = function () {
+      pending--;
+      if (pending <= 0) {
+        AppState.cachedBackupSnapshot = snapshot;
+        if (callback) callback(snapshot);
+      }
+    };
+
+    callBackend("apiGetSiswaList", "Semua", function (res) {
+      snapshot.siswa = (res && Array.isArray(res.list)) ? res.list : (AppState.cachedSiswaList || getStorage("ST_SISWA", []));
+      doneOne();
+    });
+
+    callBackend("apiGetJadwalList", null, function (res) {
+      snapshot.jadwal = (res && Array.isArray(res.list)) ? res.list : (AppState.cachedJadwal || getStorage("ST_JADWAL", []));
+      doneOne();
+    });
+
+    callBackend("apiGetPresensiList", null, function (res) {
+      snapshot.presensi = (res && Array.isArray(res.list || res.data)) ? (res.list || res.data) : (AppState.cachedPresensi || getStorage("ST_PRESENSI", []));
+      doneOne();
+    });
+
+    callBackend("apiGetLogPelanggaran", "ALL", function (res) {
+      snapshot.pelanggaran = (res && Array.isArray(res.list || res.logs)) ? (res.list || res.logs) : (AppState.cachedLogs || getStorage("ST_LOG", []));
+      doneOne();
+    });
+  }
+  window.collectFullBackupSnapshot = collectFullBackupSnapshot;
+
+  function openModalBackupData() {
+    var setCount = function (id, val) {
+      var el = document.getElementById(id);
+      if (el) el.innerText = val;
+    };
+    setCount("backupCountSiswa", "...");
+    setCount("backupCountJadwal", "...");
+    setCount("backupCountPresensi", "...");
+    setCount("backupCountPelanggaran", "...");
+
+    openModal("modalBackupData");
+
+    collectFullBackupSnapshot(function (snap) {
+      setCount("backupCountSiswa", (snap.siswa || []).length + " Siswa");
+      setCount("backupCountJadwal", (snap.jadwal || []).length + " Jadwal");
+      setCount("backupCountPresensi", (snap.presensi || []).length + " Data");
+      setCount("backupCountPelanggaran", (snap.pelanggaran || []).length + " Log");
+    });
+  }
+  window.openModalBackupData = openModalBackupData;
+
+  function handleExportBackupJson() {
+    showLoading(true, "Menyiapkan Arsip Backup Lengkap (.JSON)...");
+    collectFullBackupSnapshot(function (snap) {
+      showLoading(false);
+      try {
+        var dateTag = new Date().toISOString().substring(0, 10);
+        var filename = "SmartTest_Backup_SMPN1_" + dateTag + ".json";
+        var jsonStr = JSON.stringify(snap, null, 2);
+        var blob = new Blob([jsonStr], { type: "application/json;charset=utf-8" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        showToast("Backup JSON berhasil diunduh: " + filename, "success");
+      } catch (err) {
+        showToast("Gagal membuat file backup JSON: " + err.message, "error");
+      }
+    });
+  }
+  window.handleExportBackupJson = handleExportBackupJson;
+
+  function handleExportBackupExcel() {
+    if (typeof window.XLSX === "undefined") {
+      showToast("Pustaka Excel (SheetJS) belum termuat. Gunakan Backup JSON atau periksa koneksi internet.", "warning");
+      return;
+    }
+
+    showLoading(true, "Menyusun Arsip Multi-Sheet Excel (.XLSX)...");
+    collectFullBackupSnapshot(function (snap) {
+      showLoading(false);
+      try {
+        var wb = window.XLSX.utils.book_new();
+
+        // Sheet 1: Data Siswa
+        var rowsSiswa = (snap.siswa || []).map(function (s, idx) {
+          return {
+            "No": idx + 1,
+            "No Peserta": s.noPeserta || s.no_peserta || "-",
+            "NISN": s.nisn || "-",
+            "Nama Lengkap": s.nama || "-",
+            "Kelas": s.kelas || "-",
+            "Ruang": s.ruang || "-",
+            "Status Ujian": s.status || s.status_ujian || "Belum Mulai"
+          };
+        });
+        if (rowsSiswa.length === 0) rowsSiswa.push({ "Info": "Belum ada data siswa tersimpan" });
+        var wsSiswa = window.XLSX.utils.json_to_sheet(rowsSiswa);
+        window.XLSX.utils.book_append_sheet(wb, wsSiswa, "Data Siswa");
+
+        // Sheet 2: Jadwal Ujian
+        var rowsJadwal = (snap.jadwal || []).map(function (j, idx) {
+          return {
+            "No": idx + 1,
+            "Mata Pelajaran": j.mapel || "-",
+            "Guru Pengampu": j.guru || "-",
+            "Kelas": j.kelas || "-",
+            "Tanggal": j.tanggal || "-",
+            "Jam Mulai": j.jam || j.jam_mulai || "-",
+            "Durasi (Menit)": j.durasi || 90,
+            "Token": j.token || "-",
+            "Status": j.status || "-",
+            "Link Soal": j.link || j.link_soal || "-"
+          };
+        });
+        if (rowsJadwal.length === 0) rowsJadwal.push({ "Info": "Belum ada jadwal ujian tersimpan" });
+        var wsJadwal = window.XLSX.utils.json_to_sheet(rowsJadwal);
+        window.XLSX.utils.book_append_sheet(wb, wsJadwal, "Jadwal Ujian");
+
+        // Sheet 3: Presensi Peserta
+        var rowsPresensi = (snap.presensi || []).map(function (p, idx) {
+          return {
+            "No": idx + 1,
+            "No Peserta": p.noPeserta || p.no_peserta || "-",
+            "Nama Siswa": p.nama || "-",
+            "Kelas": p.kelas || "-",
+            "Mata Pelajaran": p.mapel || "-",
+            "Jam Masuk": p.jamMasuk || "-",
+            "Status": p.status || "-"
+          };
+        });
+        if (rowsPresensi.length === 0) rowsPresensi.push({ "Info": "Belum ada data presensi tersimpan" });
+        var wsPresensi = window.XLSX.utils.json_to_sheet(rowsPresensi);
+        window.XLSX.utils.book_append_sheet(wb, wsPresensi, "Presensi Peserta");
+
+        // Sheet 4: Log Pelanggaran
+        var rowsLog = (snap.pelanggaran || []).map(function (l, idx) {
+          return {
+            "No": idx + 1,
+            "Waktu": l.waktu || "-",
+            "No Peserta": l.noPeserta || l.no_peserta || "-",
+            "Nama Siswa": l.siswa || l.nama_siswa || "-",
+            "Kelas": l.kelas || "-",
+            "Mata Pelajaran": l.mapel || "-",
+            "Jenis Pelanggaran": l.jenis || "-",
+            "Total Pelanggaran": l.total || 1,
+            "Status": l.status || "-"
+          };
+        });
+        if (rowsLog.length === 0) rowsLog.push({ "Info": "Belum ada catatan pelanggaran" });
+        var wsLog = window.XLSX.utils.json_to_sheet(rowsLog);
+        window.XLSX.utils.book_append_sheet(wb, wsLog, "Log Pelanggaran");
+
+        var dateTag = new Date().toISOString().substring(0, 10);
+        var filename = "SmartTest_Arsip_Ujian_SMPN1_" + dateTag + ".xlsx";
+        window.XLSX.writeFile(wb, filename);
+        showToast("Arsip Excel (.XLSX) berhasil diunduh: " + filename, "success");
+      } catch (err) {
+        showToast("Gagal mengekspor Excel: " + err.message, "error");
+      }
+    });
+  }
+  window.handleExportBackupExcel = handleExportBackupExcel;
 
   function switchGuruTab(tabName) {
     document.querySelectorAll(".guru-tab-content").forEach(function (t) {
